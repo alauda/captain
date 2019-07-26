@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.name }}
-          image: "{{ .Values.global.registry.address }}/{{ .Values.global.images.captain.repository }}:{{ .Values.global.images.captain.tag }}"
+          image: "{{ .Values.global.images.captain.repository }}:{{ .Values.global.images.captain.tag }}"
           terminationMessagePolicy: File
           imagePullPolicy: {{ .Values.image.policy }}
           resources:

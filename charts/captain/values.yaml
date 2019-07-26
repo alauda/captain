@@ -10,9 +10,7 @@ resources:
     cpu: 512m
     memory: 256Mi
 global:
-  registry:
-    address: index.alauda.cn
   images:
     captain:
-      repository: alaudaorg/captain
-      tag: v2.2-b.1
+      repository: alaudapublic/captain
+      tag: v2.2-b.2
