@@ -1,0 +1,25 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    certmanager.k8s.io/inject-ca-from: {{ .Values.namespace }}/captain-serving-cert
+  name: captain
+webhooks:
+  - clientConfig:
+      caBundle: Cg==
+      service:
+        name: captain
+        namespace: {{ .Values.namespace }}
+        path: /validate
+    failurePolicy: Fail
+    name: validate-helmrequest.app.alauda.io
+    rules:
+      - apiGroups:
+          - app.alauda.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - helmrequests

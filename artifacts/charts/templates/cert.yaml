@@ -1,0 +1,15 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  labels:
+    app: captain
+  name: captain-serving-cert
+  namespace: {{ .Values.namespace }}
+spec:
+  commonName: captain.{{ .Values.namespace }}.svc
+  dnsNames:
+    - captain.{{ .Values.namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: captain-selfsigned-issuer
+  secretName: captain-webhook-cert

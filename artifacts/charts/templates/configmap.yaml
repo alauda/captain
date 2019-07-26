@@ -1,0 +1,18 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: captain
+  namespace: {{ .Values.namespace }}
+data:
+  repositories.yaml: |
+    apiVersion: v1
+    generated: 2019-06-19T17:26:28.715546186+08:00
+    repositories:
+    - caFile: ""
+      cache: /root/.helm/repository/cache/stable-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: stable
+      password: ""
+      url: https://kubernetes-charts.storage.googleapis.com
+      username: ""
