@@ -21,18 +21,18 @@ pipeline {
 	}
 	//(optional) 环境变量
 	environment {
-		FOLDER = 'src/alauda.io/captain'
+		FOLDER = 'src/github.com/alauda/captain'
 
 		// for building an scanning
 		REPOSITORY = "captain"
-		OWNER = "mathildetech"
+		OWNER = "alauda"
 
 		BITBUCKET_FEEDBACK_ACCOUNT = "alaudabot"
 		SONARQUBE_BITBUCKET_CREDENTIALS = "alaudabot"
 		IMAGE_REPOSITORY = "index.alauda.cn/alaudaorg/captain"
 		IMAGE_CREDENTIALS = "alaudacn-daniel"
 		DINGDING_BOT = "devops-chat-bot"
-		TAG_CREDENTIALS = "alaudabot-bitbucket"
+		TAG_CREDENTIALS = "alaudabot-github"
 		PROXY_CREDENTIALS_ID = 'proxy'
 
 		// go lang 1.12 proxy and modules support
@@ -137,7 +137,8 @@ pipeline {
 								TAG_CREDENTIALS,
 								RELEASE_BUILD,
 								OWNER,
-								REPOSITORY
+								REPOSITORY,
+								"github.com"
 							)
 						}
 					}
