@@ -1,50 +1,12 @@
-<h1 align="center">Welcome to captain 👋</h1>
-<p>
-  <img src="https://img.shields.io/badge/version-2.0-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/go-%3E%3D1.12.0-blue.svg" />
-  <a href="https://github.com/alauda/captain/tree/master/docs">
-    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" target="_blank" />
-  </a>
-</p>
+# Captain
 
-> Helm Controller
+[![Go Report Card](https://goreportcard.com/badge/github.com/alauda/captain)](https://goreportcard.com/report/github.com/alauda/captain)
 
-### 🏠 [Homepage](https://gitlab.aks.myalauda.cn/alauda/captain)
+Captain is a Helm 3 Controller
 
-## Prerequisites
+## About Helm3 
 
-- go &gt;=1.12.0
+The [Helm 3 Design Proposal](https://github.com/helm/community/blob/master/helm-v3/000-helm-v3.md) has been exist for a while, and the helm 
+developer group is focused on the core helm 3 development, this is the first implementation of Helm3 Controller based on the Proposal.
+ 
 
-## Install
-
-```sh
-make build
-```
-
-## Usage
-
-```sh
-./captain --help
-```
-
-## Run tests
-
-```sh
-make test
-```
-
-## Author
-
-👤 **Hang Yan**
-
-
-## 🤝 Contributing
-
-Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](http://jira.alaudatech.com/projects/ACP/issues).
-
-## Show your support
-
-Give a ⭐️ if this project helped you!
-
-***
-_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_
