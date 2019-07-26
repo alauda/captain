@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "alauda.io/captain/pkg/client/clientset/versioned"
-	app "alauda.io/captain/pkg/client/informers/externalversions/app"
-	internalinterfaces "alauda.io/captain/pkg/client/informers/externalversions/internalinterfaces"
+	versioned "github.com/alauda/captain/pkg/client/clientset/versioned"
+	app "github.com/alauda/captain/pkg/client/informers/externalversions/app"
+	internalinterfaces "github.com/alauda/captain/pkg/client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

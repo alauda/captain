@@ -22,14 +22,14 @@ import (
 	"fmt"
 	"time"
 
-	"alauda.io/captain/pkg/webhook"
+	"github.com/alauda/captain/pkg/webhook"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"alauda.io/captain/pkg/config"
-	"alauda.io/captain/pkg/controller"
-	"alauda.io/captain/pkg/helm"
-	"alauda.io/captain/pkg/helmrequest"
+	"github.com/alauda/captain/pkg/config"
+	"github.com/alauda/captain/pkg/controller"
+	"github.com/alauda/captain/pkg/helm"
+	"github.com/alauda/captain/pkg/helmrequest"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"

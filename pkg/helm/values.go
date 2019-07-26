@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/klog"
 
-	"alauda.io/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/ghodss/yaml"
 	"helm.sh/helm/pkg/chartutil"
 	v1 "k8s.io/api/core/v1"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"alauda.io/captain/pkg/cluster"
+	"github.com/alauda/captain/pkg/cluster"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"

@@ -3,8 +3,8 @@ package helm
 import (
 	"os"
 
-	"alauda.io/captain/pkg/apis/app/v1alpha1"
-	"alauda.io/captain/pkg/cluster"
+	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/captain/pkg/cluster"
 	"github.com/pkg/errors"
 	"helm.sh/helm/pkg/action"
 	"helm.sh/helm/pkg/chart/loader"

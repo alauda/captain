@@ -1,4 +1,4 @@
-module alauda.io/captain
+module github.com/alauda/captain
 
 go 1.12
 
@@ -39,6 +39,7 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fatih/structs v1.1.0
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/spec v0.19.0 // indirect
 	github.com/go-openapi/swag v0.19.0 // indirect

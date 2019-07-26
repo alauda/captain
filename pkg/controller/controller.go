@@ -24,10 +24,10 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"alauda.io/captain/pkg/cluster"
-	"alauda.io/captain/pkg/config"
-	"alauda.io/captain/pkg/helm"
-	"alauda.io/captain/pkg/util"
+	"github.com/alauda/captain/pkg/cluster"
+	"github.com/alauda/captain/pkg/config"
+	"github.com/alauda/captain/pkg/helm"
+	"github.com/alauda/captain/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -46,11 +46,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	alpha1 "alauda.io/captain/pkg/apis/app/v1alpha1"
-	clientset "alauda.io/captain/pkg/client/clientset/versioned"
+	alpha1 "github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	clientset "github.com/alauda/captain/pkg/client/clientset/versioned"
 
-	informers "alauda.io/captain/pkg/client/informers/externalversions"
-	listers "alauda.io/captain/pkg/client/listers/app/v1alpha1"
+	informers "github.com/alauda/captain/pkg/client/informers/externalversions"
+	listers "github.com/alauda/captain/pkg/client/listers/app/v1alpha1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )

@@ -1,7 +1,7 @@
 package kubeconfig
 
 import (
-	"alauda.io/captain/pkg/cluster"
+	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/component-base/system"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"

@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "alauda.io/captain/pkg/client/clientset/versioned"
-	appv1alpha1 "alauda.io/captain/pkg/client/clientset/versioned/typed/app/v1alpha1"
-	fakeappv1alpha1 "alauda.io/captain/pkg/client/clientset/versioned/typed/app/v1alpha1/fake"
+	clientset "github.com/alauda/captain/pkg/client/clientset/versioned"
+	appv1alpha1 "github.com/alauda/captain/pkg/client/clientset/versioned/typed/app/v1alpha1"
+	fakeappv1alpha1 "github.com/alauda/captain/pkg/client/clientset/versioned/typed/app/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

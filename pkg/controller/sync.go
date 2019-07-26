@@ -3,10 +3,10 @@ package controller
 import (
 	"os"
 
-	"alauda.io/captain/pkg/apis/app/v1alpha1"
-	"alauda.io/captain/pkg/cluster"
-	"alauda.io/captain/pkg/helm"
-	"alauda.io/captain/pkg/release"
+	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/captain/pkg/cluster"
+	"github.com/alauda/captain/pkg/helm"
+	"github.com/alauda/captain/pkg/release"
 	funk "github.com/thoas/go-funk"
 	"helm.sh/helm/pkg/action"
 	"k8s.io/apimachinery/pkg/util/errors"

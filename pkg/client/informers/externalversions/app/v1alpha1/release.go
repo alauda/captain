@@ -21,10 +21,10 @@ package v1alpha1
 import (
 	time "time"
 
-	appv1alpha1 "alauda.io/captain/pkg/apis/app/v1alpha1"
-	versioned "alauda.io/captain/pkg/client/clientset/versioned"
-	internalinterfaces "alauda.io/captain/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "alauda.io/captain/pkg/client/listers/app/v1alpha1"
+	appv1alpha1 "github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	versioned "github.com/alauda/captain/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/alauda/captain/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/alauda/captain/pkg/client/listers/app/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

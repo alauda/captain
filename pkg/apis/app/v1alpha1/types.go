@@ -9,7 +9,7 @@ import (
 	"github.com/ghodss/yaml"
 	"helm.sh/helm/pkg/chartutil"
 
-	"alauda.io/captain/pkg/util"
+	"github.com/alauda/captain/pkg/util"
 
 	funk "github.com/thoas/go-funk"
 

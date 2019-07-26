@@ -5,7 +5,7 @@ import (
 
 	"github.com/alauda/component-base/crd"
 
-	"alauda.io/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	extensionsobj "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"

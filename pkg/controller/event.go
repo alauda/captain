@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 
-	"alauda.io/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 

@@ -26,6 +26,6 @@ push:
 	docker push index.alauda.cn/alaudaorg/captain:latest
 
 code-gen:
-	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh all "alauda.io/captain/pkg/client" "alauda.io/captain/pkg/apis" app:v1alpha1
+	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh all "github.com/alauda/captain/pkg/client" "github.com/alauda/captain/pkg/apis" app:v1alpha1
 
 check: fmt build lint test

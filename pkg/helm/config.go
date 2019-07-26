@@ -3,13 +3,13 @@ package helm
 import (
 	"os"
 
-	releaseclient "alauda.io/captain/pkg/client/clientset/versioned"
-	"alauda.io/captain/pkg/cluster"
-	newkube "alauda.io/captain/pkg/kube"
-	"alauda.io/captain/pkg/kubeconfig"
+	releaseclient "github.com/alauda/captain/pkg/client/clientset/versioned"
+	"github.com/alauda/captain/pkg/cluster"
+	newkube "github.com/alauda/captain/pkg/kube"
+	"github.com/alauda/captain/pkg/kubeconfig"
 	"helm.sh/helm/pkg/kube"
 
-	"alauda.io/captain/pkg/release/storagedriver"
+	"github.com/alauda/captain/pkg/release/storagedriver"
 	"helm.sh/helm/pkg/action"
 	"helm.sh/helm/pkg/helmpath"
 

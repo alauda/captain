@@ -2,7 +2,7 @@
 <p>
   <img src="https://img.shields.io/badge/version-2.0-blue.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/go-%3E%3D1.12.0-blue.svg" />
-  <a href="http://confluence.alaudatech.com/pages/viewpage.action?pageId=42500547">
+  <a href="https://github.com/alauda/captain/tree/master/docs">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" target="_blank" />
   </a>
 </p>

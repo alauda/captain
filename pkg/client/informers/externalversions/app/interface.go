@@ -19,8 +19,8 @@ limitations under the License.
 package app
 
 import (
-	v1alpha1 "alauda.io/captain/pkg/client/informers/externalversions/app/v1alpha1"
-	internalinterfaces "alauda.io/captain/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/alauda/captain/pkg/client/informers/externalversions/app/v1alpha1"
+	internalinterfaces "github.com/alauda/captain/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.
