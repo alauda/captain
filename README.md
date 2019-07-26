@@ -20,6 +20,11 @@ released yet, we add some little medication to help create this controller. Of c
 * `kubectl apply` like resource manipulation，no more resource conflict 
 
 
+## Quick Install
+Check the [Installation Guide](./docs/install.md) to learn how to install captain
+
+
+
 ## TODO
 
 * Release Version secret support
