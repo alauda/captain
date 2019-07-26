@@ -1,0 +1,58 @@
+apiVersion: v1
+data:
+  repositories.yaml: |
+    apiVersion: v1
+    generated: "2019-06-11T11:02:27.2524708+08:00"
+    repositories:
+    - caFile: ""
+      cache: /root/.helm/repository/cache/stable-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: stable
+      password: ""
+      url: https://kubernetes-charts.storage.googleapis.com
+      username: ""
+    - caFile: ""
+      cache: /root/.helm/repository/cache/local-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: local
+      password: ""
+      url: http://127.0.0.1:8879/charts
+      username: ""
+    - caFile: ""
+      cache: /root/.helm/repository/cache/incubator-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: incubator
+      password: <masked>
+      url: http://incubator.ace-default.cloud.myalauda.cn/
+      username: <masked>
+    - caFile: ""
+      cache: /root/.helm/repository/cache/alauda-stable-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: alauda-stable
+      password: ""
+      url: http://7DO9QoLtDx1g:2wb4E1iydRj7@alauda-kubernetes-charts.alauda.cn
+      username: ""
+    - caFile: ""
+      cache: /root/.helm/repository/cache/acp-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: acp
+      password: ""
+      url: http://chartmuseum:chartmuseum@10.0.128.95:8088
+      username: ""
+    - caFile: ""
+      cache: /root/.helm/repository/cache/jetstack-index.yaml
+      certFile: ""
+      keyFile: ""
+      name: jetstack
+      password: ""
+      url: https://charts.jetstack.io
+      username: ""
+kind: ConfigMap
+metadata:
+  name: captain
+  namespace: alauda-system

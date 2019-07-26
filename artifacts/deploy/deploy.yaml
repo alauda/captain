@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: captain
+  namespace: alauda-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service_name: captain
+  template:
+    metadata:
+      labels:
+        service_name: captain
+    spec:
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: captain
+          name: config-volume
+        - name: certs
+          secret:
+            optional: true
+            secretName: captain-webhook-cert
+      containers:
+        - name: captain
+          args:
+            - /captain/captain
+            - -v=5
+          image: index.alauda.cn/alaudaorg/captain:latest
+          imagePullPolicy: Always
+          volumeMounts:
+          - mountPath: /tmp/repositories.yaml
+            name: config-volume
+            subPath: repositories.yaml
+          - mountPath: /tmp/k8s-webhook-server/serving-certs
+            name: certs

@@ -1,0 +1,11 @@
+apiVersion: app.alauda.io/v1alpha1
+kind: HelmRequest
+metadata:
+  name: acp
+  namespace: alauda-system
+spec:
+  clusterName: ""
+  releaseName: acp
+  chart: alauda-release/alauda-container-platform
+  namespace: alauda-system
+  version: v2.0.3

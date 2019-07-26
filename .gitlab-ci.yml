@@ -1,0 +1,114 @@
+# This file is a template, and might need editing before it works on your project.
+image: hangyan/go-ci:latest
+
+variables:
+  # Please edit to your GitLab project
+  REPO_NAME: captain
+  IMAGE_TAG: index.alauda.cn/alaudaorg/captain:$CI_COMMIT_SHA
+  IMAGE_LATEST_TAG: index.alauda.cn/alaudaorg/captain:latest
+
+# The problem is that to be able to use go get, one needs to put
+# the repository in the $GOPATH. So for example if your gitlab domain
+# is gitlab.com, and that your repository is namespace/project, and
+# the default GOPATH being /go, then you'd need to have your
+# repository in /go/src/gitlab.com/namespace/project
+# Thus, making a symbolic link corrects this.
+before_script:
+  - mkdir -p $GOPATH/src/alauda.io/$(dirname $REPO_NAME)
+  - ln -svf $CI_PROJECT_DIR $GOPATH/src/alauda.io/$REPO_NAME
+  - cd $GOPATH/src/alauda.io/$REPO_NAME
+
+
+stages:
+    - pre
+    - build
+    - analysis
+    - deploy
+
+
+danger:
+  only:
+    - merge_requests
+  stage: pre
+  image: hangyan/danger
+  script:
+    - danger --fail-on-errors=true --dangerfile=hack/ci/Dangerfile
+
+
+lint:
+  only:
+    - merge_requests
+    - master
+    - release
+  stage: build
+  script:
+    - make lint
+
+unit-test:
+    only:
+      - merge_requests
+      - master
+      - release
+    stage: build
+    script:
+      - make test
+    artifacts:
+      paths:
+        - artifacts/coverage.out
+
+
+docker:
+  only:
+    - tags
+    - master
+    - release
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: build
+  script:
+    - docker login -u $ALAUDA_USER -p $ALAUDA_PASSWORD index.alauda.cn
+    - DOCKER_BUILDKIT=1 docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+    - docker tag $IMAGE_TAG $IMAGE_LATEST_TAG
+    - docker push $IMAGE_LATEST_TAG
+
+
+
+sonarqube:
+  only:
+    - merge_requests
+  stage: analysis
+  image: ciricihq/gitlab-sonar-scanner
+  dependencies:
+    - unit-test
+  variables:
+    SONAR_URL: https://sonar.aks.myalauda.cn
+    SONAR_ANALYSIS_MODE: preview
+    SONAR_GITLAB_PROJECT_ID: alauda/captain
+  script:
+    - gitlab-sonar-scanner
+
+sonarqube-reports:
+  only:
+    - master
+  stage: analysis
+  image: ciricihq/gitlab-sonar-scanner
+  variables:
+    SONAR_URL:  https://sonar.aks.myalauda.cn
+    SONAR_ANALYSIS_MODE: publish
+  script:
+    - gitlab-sonar-scanner -Dsonar.login=$SONAR_TOKEN
+
+
+deploy to acp:
+  only:
+    - master
+  stage: deploy
+  dependencies:
+    - docker
+  environment: 'dev'
+  image: lachlanevenson/k8s-kubectl:latest
+  script:
+    - kubectl version --insecure-skip-tls-verify=true
+    - kubectl set image deployment.v1.apps/captain captain=${IMAGE_TAG} -n alauda-system --record --insecure-skip-tls-verify=true

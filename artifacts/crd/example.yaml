@@ -1,0 +1,13 @@
+apiVersion: app.alauda.io/v1alpha1
+kind: HelmRequest
+metadata:
+  name: gitlab
+  namespace: default
+spec:
+  clusterName: business
+  releaseName: github
+  chart: incubator/gitlab-ce
+  namespace: h2
+  version: v0.1.2
+  values:
+    - ingress.enabled: true

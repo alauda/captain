@@ -1,0 +1,17 @@
+apiVersion: app.alauda.io/v1alpha1
+kind: HelmRequest
+metadata:
+  name: nginx
+  namespace: h8
+spec:
+  chart: in/nginx-ingress
+  namespace: h8
+  version: 1.6.17
+  valuesFrom:
+    - secretKeyRef:
+        name: test
+  values:
+    global:
+      images:
+        nginxIngressController:
+          repository: alaudaorg/hello-world

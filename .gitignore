@@ -1,0 +1,5 @@
+.idea/
+captain
+.helm/
+.kube/
+artifacts/coverage.out

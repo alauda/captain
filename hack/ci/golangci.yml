@@ -1,0 +1,39 @@
+linters:
+  enable-all: true
+  disable:
+    - maligned
+    - prealloc
+    - errcheck
+    - gochecknoglobals
+    - nakedret
+    - gochecknoinits
+    - gosec
+    - scopelint # temp
+
+
+linters-settings:
+  lll:
+     line-length: 150
+  goconst:
+     min-len: 2
+     min-occurrences: 4
+
+  
+issues:
+  exclude:
+    - "a blank import should be only in a main or test package"
+  exclude-rules:
+    # govet ignore composites
+    - linters:
+        - govet
+      text: "composites:"
+    - path: pkg/apis/
+      linters:
+        - golint
+    - path: _test\.go
+      linters:
+        - lll
+        - staticcheck
+        - scopelint
+        - golint
+        - goconst
