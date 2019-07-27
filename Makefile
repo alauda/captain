@@ -22,8 +22,8 @@ image:
 	DOCKER_BUILDKIT=1 docker build -t captain .
 
 push:
-	docker tag captain index.alauda.cn/alaudaorg/captain:latest
-	docker push index.alauda.cn/alaudaorg/captain:latest
+	docker tag captain alaudapublic/captain:latest
+	docker push alaudapublic/captain:latest
 
 code-gen:
 	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh all "github.com/alauda/captain/pkg/client" "github.com/alauda/captain/pkg/apis" app:v1alpha1
