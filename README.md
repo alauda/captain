@@ -20,8 +20,41 @@ released yet, we add some little medication to help create this controller. Of c
 * `kubectl apply` like resource manipulation，no more resource conflict 
 
 
-## Quick Install
+## Quick Start
 Check the [Installation Guide](./docs/install.md) to learn how to install captain
+
+Then, create a HelmRequest resource 
+
+```yaml
+kind: HelmRequest
+apiVersion: app.alauda.io/v1alpha1
+metadata:
+  name: nginx-ingress
+spec:
+  chart: stable/nginx-ingress
+```
+After a few seconds, you have a nginx-ingress chart running
+
+```bash
+root@VM-16-12-ubuntu:~/demo# kubectl get pods
+NAME                                             READY   STATUS    RESTARTS   AGE
+nginx-ingress-controller-57987f445c-9rhv5        1/1     Running   0          16s
+nginx-ingress-default-backend-7679dbd5c9-wkkss   1/1     Running   0          16s
+root@VM-16-12-ubuntu:~/demo# kubectl get hr
+NAME            CHART                  VERSION   NAMESPACE   ALLCLUSTER   PHASE    AGE
+nginx-ingress   stable/nginx-ingress             default                  Synced   23s
+```
+
+For the detailed explain and advanced usage, please check the documentation below
+
+
+
+## Documention
+
+* [How captain works](./docs/captain.md)
+* [HelmRequest](./docs/helmrequest.md)
+
+
 
 
 

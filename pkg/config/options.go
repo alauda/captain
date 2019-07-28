@@ -53,7 +53,7 @@ func (opt *Options) BindFlags() {
 		"Print version")
 	flag.BoolVar(&opt.InstallCRD, "install-crd", true,
 		"Install HelmRequest CRD if it does not exist")
-	flag.StringVar(&opt.ClusterNamespace, "cluster-namespace", "alauda-system",
+	flag.StringVar(&opt.ClusterNamespace, "cluster-namespace", "captain",
 		"The namespace where all the Cluster resource lives in")
 	flag.StringVar(&opt.GlobalClusterName, "global-cluster-name", "global",
 		"The name of the global cluster resource")

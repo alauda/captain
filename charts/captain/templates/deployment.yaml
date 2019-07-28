@@ -17,6 +17,9 @@ spec:
           image: "{{ .Values.global.images.captain.repository }}:{{ .Values.global.images.captain.tag }}"
           terminationMessagePolicy: File
           imagePullPolicy: {{ .Values.image.policy }}
+          args:
+            - /captain/captain
+            - -cluster-namespace={{ .Values.namespace }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           volumeMounts:
