@@ -36,3 +36,7 @@ helm repo add alauda https://alauda.github.io/charts
 kubectl create namespace captain # or choose a namespace you likes， just remember to update the args below
 helm install  --name=captain --version=v2.2-b.2 --namespace=captain --set namespace=captain alauda/captain
 ```
+
+About the versions, this project has an jenkins pipeline which target on internal purpose usage. 
+It will tag master commits, so there will be a lot of tags. For now there is only one stable version
+`v2.2-b.2` which is well tested. This workflow will changed ASAP.
