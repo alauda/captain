@@ -14,10 +14,10 @@ released yet, we add some little medication to help create this controller. Of c
 
 ## Features
 * HelmRequest and Release CRD, namespace based
-* Multi cluster support
-* Dependency check for HelmRequest
+* Multi cluster support based on [https://github.com/kubernetes/cluster-registry](https://github.com/kubernetes/cluster-registry)
+* Dependency check for HelmRequest (between HelmRequests)
 * `valuesFrom` support, also use ConfigMap or Secret to store values
-* `kubectl apply` like resource manipulation，no more resource conflict 
+* `kubectl apply` like resource manipulation，no more resource conflict and CRD management issues
 
 
 ## Quick Start
@@ -52,13 +52,13 @@ For the detailed explain and advanced usage, please check the documentation belo
 ## Documention
 
 * [How captain works](./docs/captain.md)
-* [HelmRequest](./docs/helmrequest.md)
+* [HelmRequest CRD](./docs/helmrequest.md)
 
 
 
 
 
-## TODO
+## Future Plans
 
 * Release Version secret support
 * Repo CRD
@@ -66,7 +66,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 
 ## Related Project
 
-* [flux](https://github.com/fluxcd/flux)
+* [flux](https://github.com/fluxcd/flux): flux have a similar controller based on Helm2
 
 
 

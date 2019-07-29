@@ -1,13 +1,12 @@
 # How captain works
 
-Captain is regular kubernetes controller, it watch some specific resource (HelmRequest in this context), process them, and sync their states. Besides that, there are some custom componets related to helm need a little explain
+Captain is regular kubernetes controller, it watch specific resource (HelmRequest in this context), process them, and sync their states. Besides that, there are some custom components related to helm need a little explain
 
 
 
-## Repo
+## Helm Repo
 
-Since Helm3 code is under active development, it not totally ready to act as an library. So some of the helm function still need the old fahsion. Helm 2 use local files to store repo information and index. In Captain, it remains the same way. But it mount the repo file from a kubernetes config(ConfigMap, Secret). For example,  in our depoyment, the captain charts contains a ConfigMap looks like this:
-
+Since Helm3 code is under active development, it not totally ready to act as an library. So some of the helm function still need the old fashion way. Helm2 use local files to store repo information and index. In Captain, it remains the same way. But it mount the repo file from a kubernetes config(ConfigMap, Secret). For example,  in our deployment, the captain charts contains a ConfigMap looks like this:
 
 
 ```yaml
@@ -49,8 +48,8 @@ The future plan is to use a CRD to define repo info
 
 ## Clusters
 
-Captain has built in support for multi-cluster, based on the kubernetes [cluster-registry](https://github.com/kubernetes/cluster-registry) project, which means you can not only install a Helm charts to the local cluster, you can also install the charts to any other cluster you specificed. Besides that, there is an alternative options which you can install one charts to all the clusters.
-
+Captain has built in support for multi-cluster, based on the kubernetes [cluster-registry](https://github.com/kubernetes/cluster-registry) project, which means you can not only install a Helm charts to the local cluster, you can also install the charts to any other cluster you specified. Besides that, there is an alternative option which allow you to install one charts to all the clusters.
+This can be very convenient at production environment which always have many clusters and required to install some base component to all the clusters. 
 
 
 
