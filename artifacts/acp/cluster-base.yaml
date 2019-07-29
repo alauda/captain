@@ -1,8 +1,0 @@
-apiVersion: app.alauda.io/v1alpha1
-kind: HelmRequest
-metadata:
-  name: cluster-base
-  namespace: alauda-system
-spec:
-  installToAllClusters: true
-  chart: alauda-release/alauda-container-platform
