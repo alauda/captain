@@ -63,6 +63,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 * Release Version secret support
 * Repo CRD
 * Repo proxy support
+* Data migration tool from Helm2 release to Helm3 Release
 
 
 ## Related Project
