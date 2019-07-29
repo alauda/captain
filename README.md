@@ -53,7 +53,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 
 * [How captain works](./docs/captain.md)
 * [HelmRequest CRD](./docs/helmrequest.md)
-
+* [Release CRD](./docs/release.md)
 
 
 

@@ -1,5 +1,5 @@
 name: captain
-namespace: alauda-system
+namespace: captain
 image:
   pullPolicy: IfNotPresent
 resources:
