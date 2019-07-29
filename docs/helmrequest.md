@@ -25,6 +25,8 @@ spec:
   namespace: default
   releaseName: nginx-ingress
   clusterName: ""
+  dependencies:
+  - nginx
   installToAllClusters: false
   values:
     env: prod
@@ -64,6 +66,11 @@ If not set, default to "", which means this chart will be installed to the curre
 
 Default to false, and it override `spec.clusterName`. If set to `true`, means this charts will be installed to all the clusters, not only the existing ones, 
 even the ones added after this HelmRequest (informers will force rsync HelmRequest resource periodically, and captain will refresh cluster list, so just wait and see the magic happens!)
+
+
+## spec.dependencies
+
+A list of HelmRequests in the current namespace that need to be synced before this one.
 
 
 ## spec.values
