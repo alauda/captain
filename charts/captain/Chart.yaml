@@ -1,4 +1,4 @@
 name: captain
 appVersion: "2.0"
-version: v2.2-b.2
+version: v0.8.0
 description: A Helm3 Controller
