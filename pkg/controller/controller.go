@@ -321,16 +321,20 @@ func (c *Controller) updateHelmRequestStatus(helmRequest *alpha1.HelmRequest) er
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
+	h := hash.GenHashStr(helmRequest.Spec)
+	// Note: we have to generate the hash before the deepcopy, because somehow the deepcopy
+	// can create a spec that have different hash value.
 	request := helmRequest.DeepCopy()
-	request.Status.LastSpecHash = hash.GenHashStr(request.Spec)
+	request.Status.LastSpecHash = h
 	return c.updateHelmRequestPhase(request, alpha1.HelmRequestSynced)
 }
 
 // setPartialSyncedStatus set spec hash and partial-synced status for helm-request
 //TODO: merge with updateHelmRequestStatus
 func (c *Controller) setPartialSyncedStatus(helmRequest *alpha1.HelmRequest) error {
+	h := hash.GenHashStr(helmRequest.Spec)
 	request := helmRequest.DeepCopy()
-	request.Status.LastSpecHash = hash.GenHashStr(request.Spec)
+	request.Status.LastSpecHash = h
 	return c.updateHelmRequestPhase(request, alpha1.HelmRequestPartialSynced)
 }
 
@@ -351,14 +355,18 @@ func (c *Controller) updateHelmRequestPhase(helmRequest *alpha1.HelmRequest, pha
 	// which is ideal for ensuring nothing other than resource status has been updated.
 	_, err := c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(request)
 	if err != nil {
-		klog.Warning("update helm request status conflict, retry...")
 		if apierrors.IsConflict(err) {
+			klog.Warning("update helm request status conflict, retry...")
 			origin, err := c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).Get(helmRequest.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
+			klog.Warningf("origin status: %+v, current: %+v", origin.Status, request.Status)
 			origin.Status = *request.Status.DeepCopy()
 			_, err = c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(origin)
+			if err != nil {
+				klog.Error("retrying update helmrequest status error:", err)
+			}
 			return err
 		}
 		klog.Errorf("update status for helmrequest %s error: %s", helmRequest.Name, err.Error())

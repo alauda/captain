@@ -55,16 +55,17 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 	helmRequest.Status.SyncedClusters = synced
 	klog.Infof("synced %s to clusters: %+v", key, synced)
 
+	err = errors.NewAggregate(errs)
+
 	if len(synced) >= len(clusters) {
 		// all synced
 		return c.updateHelmRequestStatus(helmRequest)
 	} else if len(synced) > 0 {
 		// partial synced
-		if err := c.setPartialSyncedStatus(helmRequest); err != nil {
-			return err
-		}
+		c.sendFailedSyncEvent(helmRequest, err)
+		return c.setPartialSyncedStatus(helmRequest)
 	}
-	return errors.NewAggregate(errs)
+	return err
 }
 
 // sync install/update chart to one cluster
