@@ -2,6 +2,7 @@ package util
 
 import "strings"
 
+// ParseChartName is a simple function that parse chart name
 func ParseChartName(name string) (repo, chart string) {
 	data := strings.Split(name, "/")
 	if len(data) == 1 {

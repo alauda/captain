@@ -36,6 +36,8 @@ func New(getter genericclioptions.RESTClientGetter) *Client {
 	}
 }
 
+// BuildUnstructured  validates for Kubernetes objects and returns unstructured infos.
+// Maybe this override is not needed anymore
 func (c *Client) BuildUnstructured(reader io.Reader) (kube.Result, error) {
 	result, err := c.Client.BuildUnstructured(reader)
 	if err != nil {

@@ -18,12 +18,14 @@ type IndexSyncer struct {
 	interval int
 }
 
+// NewDefaultIndexSyncer create a new IndexSyncer
 func NewDefaultIndexSyncer() *IndexSyncer {
 	return &IndexSyncer{
 		interval: defaultInterval,
 	}
 }
 
+// Start will refresh the repo index periodically
 func (i *IndexSyncer) Start(stop <-chan struct{}) error {
 	return wait.PollUntil(time.Second*time.Duration(i.interval),
 		func() (done bool, err error) {

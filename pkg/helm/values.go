@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+//Values is an alias for map, we cannnot use charutils.Values because the helm code
+//only support map when iterate the map
 type Values = map[string]interface{}
 
 // Merges source and destination `chartutils.Values`, preferring values from the source Values
