@@ -81,11 +81,6 @@ func newActionConfig(info *cluster.Info) (*action.Configuration, error) {
 	// hope it works
 	kc.Log = klog.Infof
 
-	clientset, err := kc.KubernetesClientSet()
-	if err != nil {
-		return nil, err
-	}
-
 	namespace := getNamespace(cfgFlags)
 
 	relClientSet, err := releaseclient.NewForConfig(info.ToRestConfig())
@@ -97,14 +92,6 @@ func newActionConfig(info *cluster.Info) (*action.Configuration, error) {
 	switch os.Getenv("HELM_DRIVER") {
 	case "release", "releases", "":
 		d := storagedriver.NewReleases(relClientSet.AppV1alpha1().Releases(namespace))
-		d.Log = klog.Infof
-		store = storage.Init(d)
-	case "secret", "secrets":
-		d := driver.NewSecrets(clientset.CoreV1().Secrets(namespace))
-		d.Log = klog.Infof
-		store = storage.Init(d)
-	case "configmap", "configmaps":
-		d := driver.NewConfigMaps(clientset.CoreV1().ConfigMaps(namespace))
 		d.Log = klog.Infof
 		store = storage.Init(d)
 	case "memory":

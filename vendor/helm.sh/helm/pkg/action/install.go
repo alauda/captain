@@ -19,14 +19,12 @@ package action
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"k8s.io/klog"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -42,9 +40,12 @@ import (
 	"helm.sh/helm/pkg/engine"
 	"helm.sh/helm/pkg/getter"
 	"helm.sh/helm/pkg/hooks"
+	kubefake "helm.sh/helm/pkg/kube/fake"
 	"helm.sh/helm/pkg/release"
 	"helm.sh/helm/pkg/releaseutil"
 	"helm.sh/helm/pkg/repo"
+	"helm.sh/helm/pkg/storage"
+	"helm.sh/helm/pkg/storage/driver"
 	"helm.sh/helm/pkg/strvals"
 	"helm.sh/helm/pkg/version"
 )
@@ -71,6 +72,7 @@ type Install struct {
 	ChartPathOptions
 	ValueOptions
 
+	ClientOnly       bool
 	DryRun           bool
 	DisableHooks     bool
 	Replace          bool
@@ -83,6 +85,7 @@ type Install struct {
 	GenerateName     bool
 	NameTemplate     string
 	OutputDir        string
+	Atomic           bool
 }
 
 type ValueOptions struct {
@@ -119,6 +122,22 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 		return nil, err
 	}
 
+	if i.ClientOnly {
+		// Add mock objects in here so it doesn't use Kube API server
+		// NOTE(bacongobbler): used for `helm template`
+		i.cfg.Capabilities = chartutil.DefaultCapabilities
+		i.cfg.KubeClient = &kubefake.PrintingKubeClient{Out: ioutil.Discard}
+		i.cfg.Releases = storage.Init(driver.NewMemory())
+	}
+
+	if err := chartutil.ProcessDependencies(chrt, i.rawValues); err != nil {
+		return nil, err
+	}
+
+	// Make sure if Atomic is set, that wait is set as well. This makes it so
+	// the user doesn't have to specify both
+	i.Wait = i.Wait || i.Atomic
+
 	caps, err := i.cfg.getCapabilities()
 	if err != nil {
 		return nil, err
@@ -153,21 +172,12 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 	klog.Info("render values done")
 
 
-	// crd-install hooks
-	if !i.DisableHooks {
-		if err := i.execHook(rel.Hooks, hooks.CRDInstall); err != nil {
-			rel.SetStatus(release.StatusFailed, "failed crd-install: "+err.Error())
-			_ = i.replaceRelease(rel)
-			return rel, err
-		}
-		klog.Info("run crd-install hook done, trying to sleep")
-	}
-
-
 	// Mark this release as in-progress
 	rel.SetStatus(release.StatusPendingInstall, "Initial install underway")
-	if err := i.validateManifest(manifestDoc); err != nil {
-		return rel, err
+
+	resources, err := i.cfg.KubeClient.Build(bytes.NewBufferString(rel.Manifest))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to build kubernetes objects from release manifest")
 	}
 
 	klog.Info("validate manifest done")
@@ -198,40 +208,36 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 
 	// pre-install hooks
 	if !i.DisableHooks {
-		if err := i.execHook(rel.Hooks, hooks.PreInstall); err != nil {
-			rel.SetStatus(release.StatusFailed, "failed pre-install: "+err.Error())
-			_ = i.replaceRelease(rel)
-			return rel, err
+
+		if err := execHooks(i.cfg.KubeClient, rel.Hooks, hooks.CRDInstall, i.Timeout); err != nil {
+			return i.failRelease(rel, fmt.Errorf("failed crd-install: %s", err))
 		}
+
+		if err := execHooks(i.cfg.KubeClient, rel.Hooks, hooks.PreInstall, i.Timeout); err != nil {
+			return i.failRelease(rel, fmt.Errorf("failed pre-install: %s", err))
+		}
+
 	}
 
 	// At this point, we can do the install. Note that before we were detecting whether to
 	// do an update, but it's not clear whether we WANT to do an update if the re-use is set
 	// to true, since that is basically an upgrade operation.
-	buf := bytes.NewBufferString(rel.Manifest)
-	if err := i.cfg.KubeClient.Create(buf); err != nil {
-		rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", i.ReleaseName, err.Error()))
-		i.recordRelease(rel) // Ignore the error, since we have another error to deal with.
-		return rel, errors.Wrapf(err, "release %s failed", i.ReleaseName)
+	if _, err := i.cfg.KubeClient.Create(resources); err != nil {
+		return i.failRelease(rel, err)
 	}
 
 	klog.Info("create manifest resources")
 
 	if i.Wait {
-		buf := bytes.NewBufferString(rel.Manifest)
-		if err := i.cfg.KubeClient.Wait(buf, i.Timeout); err != nil {
-			rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", i.ReleaseName, err.Error()))
-			i.recordRelease(rel) // Ignore the error, since we have another error to deal with.
-			return rel, errors.Wrapf(err, "release %s failed", i.ReleaseName)
+		if err := i.cfg.KubeClient.Wait(resources, i.Timeout); err != nil {
+			return i.failRelease(rel, err)
 		}
 
 	}
 
 	if !i.DisableHooks {
-		if err := i.execHook(rel.Hooks, hooks.PostInstall); err != nil {
-			rel.SetStatus(release.StatusFailed, "failed post-install: "+err.Error())
-			_ = i.replaceRelease(rel)
-			return rel, err
+		if err := execHooks(i.cfg.KubeClient, rel.Hooks, hooks.PostInstall, i.Timeout); err != nil {
+			return i.failRelease(rel, fmt.Errorf("failed post-install: %s", err))
 		}
 	}
 
@@ -249,13 +255,30 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 	return rel, nil
 }
 
+func (i *Install) failRelease(rel *release.Release, err error) (*release.Release, error) {
+	rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", i.ReleaseName, err.Error()))
+	if i.Atomic {
+		i.cfg.Log("Install failed and atomic is set, uninstalling release")
+		uninstall := NewUninstall(i.cfg)
+		uninstall.DisableHooks = i.DisableHooks
+		uninstall.KeepHistory = false
+		uninstall.Timeout = i.Timeout
+		if _, uninstallErr := uninstall.Run(i.ReleaseName); uninstallErr != nil {
+			return rel, errors.Wrapf(uninstallErr, "an error occurred while uninstalling the release. original install error: %s", err)
+		}
+		return rel, errors.Wrapf(err, "release %s failed, and has been uninstalled due to atomic being set", i.ReleaseName)
+	}
+	i.recordRelease(rel) // Ignore the error, since we have another error to deal with.
+	return rel, err
+}
+
 // availableName tests whether a name is available
 //
 // Roughly, this will return an error if name is
 //
 //	- empty
 //	- too long
-// 	- already in use, and not deleted
+//	- already in use, and not deleted
 //	- used by a deleted release, and i.Replace is false
 func (i *Install) availableName() error {
 	start := i.ReleaseName
@@ -265,6 +288,10 @@ func (i *Install) availableName() error {
 
 	if len(start) > releaseNameMaxLen {
 		return errors.Errorf("release name %q exceeds max length of %d", start, releaseNameMaxLen)
+	}
+
+	if i.DryRun {
+		return nil
 	}
 
 	h, err := i.cfg.Releases.History(start)
@@ -388,22 +415,24 @@ func (c *Configuration) renderResources(ch *chart.Chart, values chartutil.Values
 	}
 
 	// Aggregate all valid manifests into one big doc.
+	fileWritten := make(map[string]bool)
 	for _, m := range manifests {
 		if outputDir == "" {
 			fmt.Fprintf(b, "---\n# Source: %s\n%s\n", m.Name, m.Content)
 		} else {
-			err = writeToFile(outputDir, m.Name, m.Content)
+			err = writeToFile(outputDir, m.Name, m.Content, fileWritten[m.Name])
 			if err != nil {
 				return hs, b, "", err
 			}
+			fileWritten[m.Name] = true
 		}
 	}
 
 	return hs, b, notes, nil
 }
 
-// write the <data> to <output-dir>/<name>
-func writeToFile(outputDir string, name string, data string) error {
+// write the <data> to <output-dir>/<name>. <append> controls if the file is created or content will be appended
+func writeToFile(outputDir string, name string, data string, append bool) error {
 	outfileName := strings.Join([]string{outputDir, name}, string(filepath.Separator))
 
 	err := ensureDirectoryForFile(outfileName)
@@ -411,14 +440,14 @@ func writeToFile(outputDir string, name string, data string) error {
 		return err
 	}
 
-	f, err := os.Create(outfileName)
+	f, err := createOrOpenFile(outfileName, append)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprintf("---\n# Source: %s\n%s", name, data))
+	_, err = f.WriteString(fmt.Sprintf("---\n# Source: %s\n%s\n", name, data))
 
 	if err != nil {
 		return err
@@ -426,6 +455,13 @@ func writeToFile(outputDir string, name string, data string) error {
 
 	fmt.Printf("wrote %s\n", outfileName)
 	return nil
+}
+
+func createOrOpenFile(filename string, append bool) (*os.File, error) {
+	if append {
+		return os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0600)
+	}
+	return os.Create(filename)
 }
 
 // check if the directory exists to create file. creates if don't exists
@@ -437,60 +473,6 @@ func ensureDirectoryForFile(file string) error {
 	}
 
 	return os.MkdirAll(baseDir, defaultDirectoryPermission)
-}
-
-// validateManifest checks to see whether the given manifest is valid for the current Kubernetes
-func (i *Install) validateManifest(manifest io.Reader) error {
-	_, err := i.cfg.KubeClient.BuildUnstructured(manifest)
-	return err
-}
-
-// execHook executes all of the hooks for the given hook event.
-func (i *Install) execHook(hs []*release.Hook, hook string) error {
-	executingHooks := []*release.Hook{}
-
-	for _, h := range hs {
-		for _, e := range h.Events {
-			if string(e) == hook {
-				executingHooks = append(executingHooks, h)
-			}
-		}
-	}
-
-	sort.Sort(hookByWeight(executingHooks))
-
-	for _, h := range executingHooks {
-		if err := deleteHookByPolicy(i.cfg, h, hooks.BeforeHookCreation); err != nil {
-			return err
-		}
-
-		b := bytes.NewBufferString(h.Manifest)
-		if err := i.cfg.KubeClient.Create(b); err != nil {
-			return errors.Wrapf(err, "warning: Release %s %s %s failed", i.ReleaseName, hook, h.Path)
-		}
-		b.Reset()
-		b.WriteString(h.Manifest)
-
-		if err := i.cfg.KubeClient.WatchUntilReady(b, i.Timeout); err != nil {
-			// If a hook is failed, checkout the annotation of the hook to determine whether the hook should be deleted
-			// under failed condition. If so, then clear the corresponding resource object in the hook
-			if err := deleteHookByPolicy(i.cfg, h, hooks.HookFailed); err != nil {
-				return err
-			}
-			return err
-		}
-	}
-
-	// If all hooks are succeeded, checkout the annotation of each hook to determine whether the hook should be deleted
-	// under succeeded condition. If so, then clear the corresponding resource object in each hook
-	for _, h := range executingHooks {
-		if err := deleteHookByPolicy(i.cfg, h, hooks.HookSucceeded); err != nil {
-			return err
-		}
-		h.LastRun = time.Now()
-	}
-
-	return nil
 }
 
 // deletePolices represents a mapping between the key in the annotation for label deleting policy and its real meaning
@@ -644,8 +626,9 @@ func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (s
 		Out:      os.Stdout,
 		Keyring:  c.Keyring,
 		Getters:  getter.All(settings),
-		Username: c.Username,
-		Password: c.Password,
+		Options: []getter.Option{
+			getter.WithBasicAuth(c.Username, c.Password),
+		},
 	}
 	if c.Verify {
 		dl.Verify = downloader.VerifyAlways

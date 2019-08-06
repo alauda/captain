@@ -275,7 +275,7 @@ gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-alpha.1.0.20190717063003-edacb2027b32+incompatible
+# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-alpha.1.0.20190806070809-af9bbccc4ffd+incompatible
 helm.sh/helm/pkg/chartutil
 helm.sh/helm/pkg/release
 helm.sh/helm/pkg/action
@@ -292,6 +292,7 @@ helm.sh/helm/pkg/storage/driver
 helm.sh/helm/pkg/version
 helm.sh/helm/pkg/engine
 helm.sh/helm/pkg/hooks
+helm.sh/helm/pkg/kube/fake
 helm.sh/helm/pkg/lint
 helm.sh/helm/pkg/lint/support
 helm.sh/helm/pkg/provenance
