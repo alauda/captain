@@ -17,21 +17,16 @@ spec:
           image: "{{ .Values.global.images.captain.repository }}:{{ .Values.global.images.captain.tag }}"
           terminationMessagePolicy: File
           imagePullPolicy: {{ .Values.image.policy }}
-          args:
+          command:
             - /captain/captain
             - -cluster-namespace={{ .Values.namespace }}
+            - -chartrepo-namespace={{ .Values.namespace }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           volumeMounts:
-          - name: config-volume
-            mountPath: /tmp/repositories.yaml
-            subPath: repositories.yaml
           - name: certs
             mountPath: /tmp/k8s-webhook-server/serving-certs
       volumes:
-      - name: config-volume
-        configMap:
-          name: captain
       - name: certs
         secret:
           optional: true

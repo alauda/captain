@@ -18,6 +18,8 @@ limitations under the License.
 
 package v1alpha1
 
+type ChartRepoExpansion interface{}
+
 type HelmRequestExpansion interface{}
 
 type ReleaseExpansion interface{}

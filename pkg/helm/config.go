@@ -43,9 +43,10 @@ func Init() {
 	} else {
 		if fi.Size() > 0 {
 			klog.Infof("repo file has content, update index....")
-			if err := initReposIndex(); err != nil {
-				panic(err)
-			}
+			// TODO: why this will panic
+			// if err := initReposIndex(); err != nil {
+			// 	panic(err)
+			// }
 		} else if err = repo.NewFile().WriteFile(path, 0644); err != nil {
 			panic(err)
 		}

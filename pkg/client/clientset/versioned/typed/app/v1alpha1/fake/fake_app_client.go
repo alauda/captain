@@ -28,6 +28,10 @@ type FakeAppV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeAppV1alpha1) ChartRepos(namespace string) v1alpha1.ChartRepoInterface {
+	return &FakeChartRepos{c, namespace}
+}
+
 func (c *FakeAppV1alpha1) HelmRequests(namespace string) v1alpha1.HelmRequestInterface {
 	return &FakeHelmRequests{c, namespace}
 }

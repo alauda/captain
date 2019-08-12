@@ -14,6 +14,7 @@ released yet, we add some little medication to help create this controller. Of c
 
 ## Features
 * HelmRequest and Release CRD, namespace based
+* ChartRepo CRD
 * Multi cluster support based on [https://github.com/kubernetes/cluster-registry](https://github.com/kubernetes/cluster-registry)
 * Dependency check for HelmRequest (between HelmRequests)
 * `valuesFrom` support, also use ConfigMap or Secret to store values
@@ -54,6 +55,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 * [How captain works](./docs/captain.md)
 * [HelmRequest CRD](./docs/helmrequest.md)
 * [Release CRD](./docs/release.md)
+* [ChartRepo CRD](./docs/chartrepo.md)
 
 
 

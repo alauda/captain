@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alauda/captain/pkg/chartrepo"
+
 	"github.com/alauda/captain/pkg/webhook"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -66,7 +68,7 @@ func main() {
 	// init helm dirs
 	helm.Init()
 
-	// init kube client
+	// init kube config
 	cfg, err := clientcmd.BuildConfigFromFlags(options.MasterURL, options.KubeConfig)
 	if err != nil {
 		klog.Fatalf("Error building kubeconfig: %s", err.Error())
@@ -79,14 +81,21 @@ func main() {
 	}
 
 	// add helm repo syncer
-	if err := mgr.Add(helm.NewDefaultIndexSyncer()); err != nil {
-		klog.Fatal("add helm repo syncer error: ", err)
-	}
+	// if err := mgr.Add(helm.NewDefaultIndexSyncer()); err != nil {
+	//	klog.Fatal("add helm repo syncer error: ", err)
+	// }
 
 	// install HelmRequest CRD
 	if err := installCRDIfRequired(cfg, options.InstallCRD); err != nil {
 		klog.Fatalf("Error install CRD: %s", err.Error())
 	}
+
+	// install default chartrepo
+	if err := chartrepo.InstallDefaultChartRepo(cfg, options.ChartRepoNamespace); err != nil {
+		klog.Fatal("error install default helm repo:", err)
+	}
+
+	klog.Info("create default chart repo")
 
 	// create controller
 	_, err = controller.NewController(mgr, &options, stopCh)

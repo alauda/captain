@@ -6,45 +6,28 @@ Captain is regular kubernetes controller, it watch specific resource (HelmReques
 
 ## Helm Repo
 
-Since Helm3 code is under active development, it not totally ready to act as an library. So some of the helm function still need the old fashion way. Helm2 use local files to store repo information and index. In Captain, it remains the same way. But it mount the repo file from a kubernetes config(ConfigMap, Secret). For example,  in our deployment, the captain charts contains a ConfigMap looks like this:
+Since Helm3 code is under active development, it not totally ready to act as an library. So some of the helm function still need the old fashion way. Helm2 use local files to store repo information and index. 
+In Captain, it remains the same way. But it can read third-party repo from `ChartRepo` CRD, which users can read and write directly using `kubectl`,
+Here is the default ChartRepo which captain will install automatically when start: 
 
 
 ```yaml
-apiVersion: v1
-data:
-  repositories.yaml: |
-    apiVersion: v1
-    generated: 2019-06-19T17:26:28.715546186+08:00
-    repositories:
-    - caFile: ""
-      cache: /root/.helm/repository/cache/stable-index.yaml
-      certFile: ""
-      keyFile: ""
-      name: stable
-      password: ""
-      url: https://kubernetes-charts.storage.googleapis.com
-      username: ""
-kind: ConfigMap
+apiVersion: app.alauda.io/v1alpha1
+kind: ChartRepo
 metadata:
-  creationTimestamp: "2019-07-27T07:48:36Z"
-  name: captain
+  creationTimestamp: "2019-08-09T08:04:16Z"
+  generation: 2
+  name: stable
   namespace: captain
-  resourceVersion: "4886209"
-  selfLink: /api/v1/namespaces/captain/configmaps/captain
-  uid: f100c3eb-b042-11e9-bf4f-5254004f2ad2
+  resourceVersion: "7253523"
+  selfLink: /apis/app.alauda.io/v1alpha1/namespaces/captain/chartrepos/stable
+  uid: 48515f13-ba7c-11e9-98c3-5254004f2ad2
+spec:
+  url: https://kubernetes-charts.storage.googleapis.com
+status:
+  phase: Synced
 ```
-
-
-
-You can see the content format is the same as helm client. If you need to add custom repo to captain, you will have to edit this ConfigMap and restart the Captain deployment. Captain will perioldyy update the repo index to keep the local cache update to date.
-
-
-
-The future plan is to use a CRD to define repo info
-
-
-
-
+For detaild information about ChartRepo, please checkout [ChartRepo CRD](./chartrepo.md)
 
 ## Clusters
 
