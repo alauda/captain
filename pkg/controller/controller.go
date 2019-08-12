@@ -28,6 +28,7 @@ import (
 	"github.com/alauda/captain/pkg/config"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
+	funk "github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -40,7 +41,6 @@ import (
 	"k8s.io/klog"
 
 	"github.com/alauda/component-base/hash"
-	funk "github.com/thoas/go-funk"
 
 	commoncache "github.com/patrickmn/go-cache"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,6 +83,8 @@ type Controller struct {
 	helmRequestLister listers.HelmRequestLister
 	helmRequestSynced cache.InformerSynced
 
+	chartRepoSynced cache.InformerSynced
+
 	// ClusterCache is used to store Cluster resource
 	ClusterCache *commoncache.Cache
 
@@ -105,7 +107,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 		return nil, err
 	}
 
-	hrClient, err := clientset.NewForConfig(cfg)
+	appClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +118,15 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 	}
 
 	// kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	hrInformerFactory := informers.NewSharedInformerFactory(hrClient, time.Second*30)
+	appInformerFactory := informers.NewSharedInformerFactory(appClient, time.Second*30)
+	chartRepoInformerFactory := informers.NewSharedInformerFactoryWithOptions(appClient, time.Second*30, informers.WithNamespace(opt.ChartRepoNamespace))
 
-	informer := hrInformerFactory.App().V1alpha1().HelmRequests()
+	informer := appInformerFactory.App().V1alpha1().HelmRequests()
+	repoInformer := chartRepoInformerFactory.App().V1alpha1().ChartRepos()
 
 	controller := &Controller{
 		kubeClient:  kubeClient,
-		hrClientSet: hrClient,
+		hrClientSet: appClient,
 		clusterConfig: clusterConfig{
 			clusterNamespace:  opt.ClusterNamespace,
 			clusterClient:     clusterClient,
@@ -132,6 +136,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 		recorder:          mgr.GetEventRecorderFor(util.ComponentName),
 		helmRequestLister: informer.Lister(),
 		helmRequestSynced: informer.Informer().HasSynced,
+		chartRepoSynced:   repoInformer.Informer().HasSynced,
 		workQueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "HelmRequests"),
 		// refresh frequently
 		ClusterCache: commoncache.New(1*time.Minute, 5*time.Minute),
@@ -140,16 +145,18 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 	klog.Info("Setting up event handlers")
 	// Set up an event handler for when HelmRequest resources change
 	informer.Informer().AddEventHandler(controller.newHelmRequestHandler())
+	repoInformer.Informer().AddEventHandler(controller.newChartRepoHandler())
 
 	klog.V(7).Infof("cluster rest config is : %+v", cfg)
 
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
 	// kubeInformerFactory.Start(stopCh)
-	// hrInformerFactory.Start(stopCh)
+	// appInformerFactory.Start(stopCh)
 
 	// fuck examples, this should after init controller
-	hrInformerFactory.Start(stopCh)
+	appInformerFactory.Start(stopCh)
+	chartRepoInformerFactory.Start(stopCh)
 
 	return controller, mgr.Add(controller)
 }
@@ -172,7 +179,7 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.helmRequestSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.helmRequestSynced, c.chartRepoSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 

@@ -105,6 +105,71 @@ type ReleaseList struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+type ChartRepo struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              ChartRepoSpec   `json:"spec"`
+	Status            ChartRepoStatus `json:"status"`
+}
+
+func (in *ChartRepo) ValidateCreate() error {
+	return nil
+
+}
+
+func (in *ChartRepo) ValidateUpdate(old runtime.Object) error {
+	klog.V(4).Info("validate chartrepo update: ", in.GetName())
+
+	oldRepo, ok := old.(*ChartRepo)
+	if !ok {
+		return fmt.Errorf("expect old object to be a %T instead of %T", oldRepo, old)
+	}
+
+	if in.Spec.URL != oldRepo.Spec.URL {
+		return fmt.Errorf(".spec.url is immutable")
+	}
+	return nil
+}
+
+type ChartRepoSpec struct {
+	// URL is the repo's url
+	URL string `json:"url"`
+	// Secret contains information about how to auth to this repo
+	Secret *v1.SecretReference `json:"secret,omitempty"`
+}
+
+type ChartRepoPhase string
+
+const (
+	// ChartRepoSynced means is successfully recognized by captain
+	ChartRepoSynced ChartRepoPhase = "Synced"
+
+	// ChartRepoFailed means captain is unable to retrieve index info from this repo
+	ChartRepoFailed ChartRepoPhase = "Failed"
+)
+
+type ChartRepoStatus struct {
+	// Phase ...
+	// After create, this phase will be updated to indicate it's sync status
+	// If receive update event, and some field in spec changed, sync agagin.
+	Phase ChartRepoPhase `json:"phase,omitempty"`
+	// Reason is the failed reason
+	Reason string `json:"reason,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ChartRepoList struct {
+	metav1.TypeMeta `json:",inline"`
+	// +optional
+	metav1.ListMeta `son:"metadata,omitempty"`
+
+	Items []ChartRepo `json:"items"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type HelmRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

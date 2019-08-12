@@ -3,9 +3,10 @@ package controller
 import (
 	"testing"
 
+	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
+
 	"github.com/gsamokovarov/assert"
 
-	"alauda.io/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/component-base/hash"
 	"github.com/ghodss/yaml"
 	"helm.sh/helm/pkg/chartutil"

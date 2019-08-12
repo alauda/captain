@@ -53,6 +53,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=app.alauda.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("chartrepos"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.App().V1alpha1().ChartRepos().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("helmrequests"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.App().V1alpha1().HelmRequests().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("releases"):

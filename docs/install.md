@@ -34,5 +34,5 @@ helm install \
 ``` bash
 helm repo add alauda https://alauda.github.io/charts
 kubectl create namespace captain # or choose a namespace you likes， just remember to update the args below
-helm install  --name=captain --version=v0.8.0 --namespace=captain --set namespace=captain alauda/captain
+helm install  --name=captain --version=v0.9.0 --namespace=captain --set namespace=captain alauda/captain
 ```
