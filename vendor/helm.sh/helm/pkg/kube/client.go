@@ -30,7 +30,6 @@ import (
 	"github.com/pkg/errors"
 	batch "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -245,6 +244,8 @@ func (c *Client) watchTimeout(t time.Duration) func(*resource.Info) error {
 //
 // - Jobs: A job is marked "Ready" when it has successfully completed. This is
 //   ascertained by watching the Status fields in a job's output.
+// - Pods: A pod is marked "Ready" when it has successfully completed. This is
+//   ascertained by watching the status.phase field in a pod's output.
 //
 // Handling for other kinds will be added as necessary.
 func (c *Client) WatchUntilReady(resources ResourceList, timeout time.Duration) error {
@@ -304,12 +305,17 @@ func createPatch(target *resource.Info, current runtime.Object) ([]byte, types.P
 		return nil, types.StrategicMergePatchType, errors.Wrap(err, "serializing target configuration")
 	}
 
-	// While different objects need different merge types, the parent function
-	// that calls this does not try to create a patch when the data (first
-	// returned object) is nil. We can skip calculating the merge type as
-	// the returned merge type is ignored.
-	if apiequality.Semantic.DeepEqual(oldData, newData) {
-		return nil, types.StrategicMergePatchType, nil
+	// Fetch the current object for the three way merge
+	helper := resource.NewHelper(target.Client, target.Mapping)
+	currentObj, err := helper.Get(target.Namespace, target.Name, target.Export)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, types.StrategicMergePatchType, errors.Wrapf(err, "unable to get data for current object %s/%s", target.Namespace, target.Name)
+	}
+
+	// Even if currentObj is nil (because it was not found), it will marshal just fine
+	currentData, err := json.Marshal(currentObj)
+	if err != nil {
+		return nil, types.StrategicMergePatchType, errors.Wrap(err, "serializing live configuration")
 	}
 
 	// Get a versioned object
@@ -325,12 +331,13 @@ func createPatch(target *resource.Info, current runtime.Object) ([]byte, types.P
 		return patch, types.MergePatchType, errors.Wrap(err, "create patch for unstruct error")
 	}
 
-
-	patch, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, versionedObject)
+	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(versionedObject)
 	if err != nil {
-		return newData, types.MergePatchType, nil
+		return nil, types.StrategicMergePatchType, errors.Wrap(err, "unable to create patch metadata from object")
 	}
-	return patch, types.StrategicMergePatchType, errors.Wrap(err, "create two way merge path error")
+
+	patch, err := strategicpatch.CreateThreeWayMergePatch(oldData, newData, currentData, patchMeta, true)
+	return patch, types.StrategicMergePatchType, err
 }
 
 func updateResource(c *Client, target *resource.Info, currentObj runtime.Object, force bool) error {
@@ -385,13 +392,19 @@ func updateResource(c *Client, target *resource.Info, currentObj runtime.Object,
 }
 
 func (c *Client) watchUntilReady(timeout time.Duration, info *resource.Info) error {
+	kind := info.Mapping.GroupVersionKind.Kind
+	switch kind {
+	case "Job", "Pod":
+	default:
+		return nil
+	}
+
+	c.Log("Watching for changes to %s %s with timeout of %v", kind, info.Name, timeout)
+
 	w, err := resource.NewHelper(info.Client, info.Mapping).WatchSingle(info.Namespace, info.Name, info.ResourceVersion)
 	if err != nil {
 		return err
 	}
-
-	kind := info.Mapping.GroupVersionKind.Kind
-	c.Log("Watching for changes to %s %s with timeout of %v", kind, info.Name, timeout)
 
 	// What we watch for depends on the Kind.
 	// - For a Job, we watch for completion.
@@ -412,8 +425,11 @@ func (c *Client) watchUntilReady(timeout time.Duration, info *resource.Info) err
 			// the status go into a good state. For other types, like ReplicaSet
 			// we don't really do anything to support these as hooks.
 			c.Log("Add/Modify event for %s: %v", info.Name, e.Type)
-			if kind == "Job" {
+			switch kind {
+			case "Job":
 				return c.waitForJob(obj, info.Name)
+			case "Pod":
+				return c.waitForPodSuccess(obj, info.Name)
 			}
 			return true, nil
 		case watch.Deleted:
@@ -448,6 +464,30 @@ func (c *Client) waitForJob(obj runtime.Object, name string) (bool, error) {
 	}
 
 	c.Log("%s: Jobs active: %d, jobs failed: %d, jobs succeeded: %d", name, o.Status.Active, o.Status.Failed, o.Status.Succeeded)
+	return false, nil
+}
+
+// waitForPodSuccess is a helper that waits for a pod to complete.
+//
+// This operates on an event returned from a watcher.
+func (c *Client) waitForPodSuccess(obj runtime.Object, name string) (bool, error) {
+	o, ok := obj.(*v1.Pod)
+	if !ok {
+		return true, errors.Errorf("expected %s to be a *v1.Pod, got %T", name, obj)
+	}
+
+	switch o.Status.Phase {
+	case v1.PodSucceeded:
+		fmt.Printf("Pod %s succeeded\n", o.Name)
+		return true, nil
+	case v1.PodFailed:
+		return true, errors.Errorf("pod %s failed", o.Name)
+	case v1.PodPending:
+		fmt.Printf("Pod %s pending\n", o.Name)
+	case v1.PodRunning:
+		fmt.Printf("Pod %s running\n", o.Name)
+	}
+
 	return false, nil
 }
 

@@ -10,17 +10,20 @@ replace k8s.io/apiserver => k8s.io/apiserver v0.0.0-20190606205144-71ebb8303503
 
 replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.2.0-beta.3
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-alpha.1.0.20190806070809-af9bbccc4ffd+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-alpha.1.0.20190820063735-20f2bc7747e6+incompatible
 
 replace github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
 
 replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190606210616-f848dc7be4a4
+
+replace github.com/deislabs/oras => github.com/deislabs/oras v0.6.0
 
 require (
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2 // indirect
 	github.com/Masterminds/sprig v2.18.0+incompatible // indirect
+	github.com/Microsoft/hcsshim v0.8.6 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect

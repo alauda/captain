@@ -26,13 +26,13 @@ import (
 // 2. update repo index
 // we will mount the repo file from a ConfigMap by default, so this function will do the index update
 func Init() {
-	path := string(getHelmHome()) + "/repository/repositories.yaml"
+	path := helmpath.RepositoryFile()
 	err := system.CreatePathIfNotExist(path)
 	if err != nil {
 		panic(err)
 	}
 
-	path = string(getHelmHome()) + "/repository/cache/"
+	path = helmpath.RepositoryCache() + "/"
 	if err := system.CreatePathIfNotExist(path); err != nil {
 		panic(err)
 	}
@@ -51,11 +51,6 @@ func Init() {
 			panic(err)
 		}
 	}
-}
-
-// getHelmHome return the helm dir, default use the same as cli
-func getHelmHome() helmpath.Home {
-	return helmpath.Home(".helm")
 }
 
 // getNamespace get the namespaces from ..... This may be a little unnecessary, may be we can just

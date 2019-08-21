@@ -2,6 +2,7 @@ package helm
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
@@ -28,7 +29,6 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 	client.Timeout = 180 * time.Second
 	out := os.Stdout
 	settings := cli.EnvSettings{
-		Home:  getHelmHome(),
 		Debug: true,
 	}
 
@@ -57,7 +57,17 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 	cp, err := client.ChartPathOptions.LocateChart(chrt, settings)
 	if err != nil {
 		klog.Errorf("locate chart %s error: %s", cp, err.Error())
-		return nil, err
+		// a simple string match
+		if client.Version == "" && strings.Contains(err.Error(), " no chart version found for") {
+			klog.Info("no normal version found, try using devel flag")
+			client.Version = ">0.0.0-0"
+			cp, err = client.ChartPathOptions.LocateChart(chrt, settings)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	klog.V(9).Infof("CHART PATH: %s\n", cp)
@@ -66,7 +76,6 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 	if err != nil {
 		return nil, err
 	}
-	client.ValueOptions = action.NewValueOptions(values)
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
@@ -92,7 +101,6 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 				man := &downloader.Manager{
 					Out:        out,
 					ChartPath:  cp,
-					HelmHome:   settings.Home,
 					Keyring:    client.ChartPathOptions.Keyring,
 					SkipUpdate: false,
 					Getters:    getter.All(settings),
@@ -106,7 +114,7 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 		}
 	}
 
-	return client.Run(chartRequested)
+	return client.Run(chartRequested, values)
 }
 
 // isChartInstallable validates if a chart can be installed

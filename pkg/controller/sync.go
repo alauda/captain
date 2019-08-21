@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
@@ -9,6 +10,7 @@ import (
 	"github.com/alauda/captain/pkg/release"
 	funk "github.com/thoas/go-funk"
 	"helm.sh/helm/pkg/action"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 )
@@ -80,6 +82,10 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 	if err != nil {
 		return err
 	}
+
+	// record chart version for un-specified ones
+	msg := fmt.Sprintf("Choose chart version: %s %s", rel.Chart.Metadata.Name, rel.Chart.Metadata.Version)
+	c.recorder.Event(helmRequest, corev1.EventTypeNormal, SuccessSynced, msg)
 
 	action.PrintRelease(os.Stdout, rel)
 	return nil

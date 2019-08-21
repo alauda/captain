@@ -9,7 +9,7 @@ FROM index.alauda.cn/alaudaorg/alaudabase-alpine-run:alpine3.9.3
 WORKDIR /captain
 
 COPY --from=0 /go/src/github.com/alauda/captain/captain /captain/
-COPY artifacts/helm/repositories.yaml /captain/.helm/repository/
+COPY artifacts/helm/repositories.yaml /root/.config/helm/
 RUN chmod a+x /captain/captain
 
 

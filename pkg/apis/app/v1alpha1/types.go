@@ -63,8 +63,6 @@ type ReleaseStatus struct {
 	Description string `json:"Description,omitempty"`
 	// Status is the current state of the release
 	Status release.Status `json:"status,omitempty"`
-	// Cluster resources as kubectl would print them.
-	Resources string `json:"resources,omitempty"`
 	// Contains the rendered templates/NOTES.txt if available
 	Notes string `json:"notes,omitempty"`
 }
@@ -75,7 +73,6 @@ func (in *ReleaseStatus) CopyFromReleaseInfo(info *release.Info) {
 	in.Description = info.Description
 	in.FirstDeployed = metav1.NewTime(info.FirstDeployed)
 	in.LastDeployed = metav1.NewTime(info.LastDeployed)
-	in.Resources = info.Resources
 	in.Notes = info.Notes
 }
 
@@ -87,7 +84,6 @@ func (in *ReleaseStatus) ToReleaseInfo() *release.Info {
 	info.Description = in.Description
 	info.FirstDeployed = in.FirstDeployed.Time
 	info.LastDeployed = in.LastDeployed.Time
-	info.Resources = in.Resources
 	info.Notes = in.Notes
 	return &info
 }

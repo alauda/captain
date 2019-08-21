@@ -3,6 +3,8 @@ package helm
 import (
 	"time"
 
+	"helm.sh/helm/pkg/helmpath"
+
 	"helm.sh/helm/pkg/repo"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
@@ -42,7 +44,7 @@ func (i *IndexSyncer) Start(stop <-chan struct{}) error {
 
 // initReposIndex update index for all the known repos. This happens when captain starts.
 func initReposIndex() error {
-	f, err := repo.LoadFile(getHelmHome().RepositoryFile())
+	f, err := repo.LoadFile(helmpath.RepositoryFile())
 	if err != nil {
 		return err
 	}
@@ -50,7 +52,7 @@ func initReposIndex() error {
 		return nil
 	}
 	for _, re := range f.Repositories {
-		err := addRepository(re.Name, re.URL, re.Username, re.Password, getHelmHome(), "", "", "", false)
+		err := addRepository(re.Name, re.URL, re.Username, re.Password, "", "", "", false)
 		if err != nil {
 			klog.Warningf("repo index update error for %s: %s", re.Name, err.Error())
 			continue
