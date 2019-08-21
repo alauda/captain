@@ -22,7 +22,6 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error
 
 	// helm settings
 	settings := cli.EnvSettings{
-		Home:  getHelmHome(),
 		Debug: true,
 	}
 
@@ -47,7 +46,6 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error
 	if err != nil {
 		return nil, err
 	}
-	client.ValueOptions = action.NewValueOptions(values)
 	client.ResetValues = true
 
 	// locate chart
@@ -89,7 +87,7 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error
 	}
 
 	// run upgrade/install
-	resp, err := client.Run(name, ch)
+	resp, err := client.Run(name, ch, values)
 	if err != nil {
 		return nil, errors.Wrap(err, "UPGRADE FAILED")
 	}

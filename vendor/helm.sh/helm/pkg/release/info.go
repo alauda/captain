@@ -29,10 +29,6 @@ type Info struct {
 	Description string `json:"Description,omitempty"`
 	// Status is the current state of the release
 	Status Status `json:"status,omitempty"`
-	// Cluster resources as kubectl would print them.
-	Resources string `json:"resources,omitempty"`
 	// Contains the rendered templates/NOTES.txt if available
 	Notes string `json:"notes,omitempty"`
-	// LastTestSuiteRun provides results on the last test run on a release
-	LastTestSuiteRun *TestSuite `json:"last_test_suite_run,omitempty"`
 }

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"k8s.io/klog"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -31,7 +30,6 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/pkg/chart"
 	"helm.sh/helm/pkg/chartutil"
@@ -39,15 +37,13 @@ import (
 	"helm.sh/helm/pkg/downloader"
 	"helm.sh/helm/pkg/engine"
 	"helm.sh/helm/pkg/getter"
-	"helm.sh/helm/pkg/hooks"
+	"helm.sh/helm/pkg/helmpath"
 	kubefake "helm.sh/helm/pkg/kube/fake"
 	"helm.sh/helm/pkg/release"
 	"helm.sh/helm/pkg/releaseutil"
 	"helm.sh/helm/pkg/repo"
 	"helm.sh/helm/pkg/storage"
 	"helm.sh/helm/pkg/storage/driver"
-	"helm.sh/helm/pkg/strvals"
-	"helm.sh/helm/pkg/version"
 )
 
 // releaseNameMaxLen is the maximum length of a release name.
@@ -70,7 +66,6 @@ type Install struct {
 	cfg *Configuration
 
 	ChartPathOptions
-	ValueOptions
 
 	ClientOnly       bool
 	DryRun           bool
@@ -86,13 +81,6 @@ type Install struct {
 	NameTemplate     string
 	OutputDir        string
 	Atomic           bool
-}
-
-type ValueOptions struct {
-	ValueFiles   []string
-	StringValues []string
-	Values       []string
-	rawValues    map[string]interface{}
 }
 
 type ChartPathOptions struct {
@@ -117,7 +105,7 @@ func NewInstall(cfg *Configuration) *Install {
 // Run executes the installation
 //
 // If DryRun is set to true, this will prepare the release, but not install it
-func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
+func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.Release, error) {
 	if err := i.availableName(); err != nil {
 		return nil, err
 	}
@@ -130,7 +118,7 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 		i.cfg.Releases = storage.Init(driver.NewMemory())
 	}
 
-	if err := chartutil.ProcessDependencies(chrt, i.rawValues); err != nil {
+	if err := chartutil.ProcessDependencies(chrt, vals); err != nil {
 		return nil, err
 	}
 
@@ -148,14 +136,13 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 		Namespace: i.Namespace,
 		IsInstall: true,
 	}
-	valuesToRender, err := chartutil.ToRenderValues(chrt, i.rawValues, options, caps)
+	valuesToRender, err := chartutil.ToRenderValues(chrt, vals, options, caps)
 	if err != nil {
 		return nil, err
 	}
 
+	rel := i.createRelease(chrt, vals)
 
-
-	rel := i.createRelease(chrt, i.rawValues)
 	var manifestDoc *bytes.Buffer
 	rel.Hooks, manifestDoc, rel.Info.Notes, err = i.cfg.renderResources(chrt, valuesToRender, i.OutputDir)
 	// Even for errors, attach this if available
@@ -188,7 +175,7 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 		return rel, nil
 	}
 
-	// If Replace is true, we need to supersede the last release.
+	// If Replace is true, we need to supercede the last release.
 	if i.Replace {
 		if err := i.replaceRelease(rel); err != nil {
 			return nil, err
@@ -209,15 +196,16 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 	// pre-install hooks
 	if !i.DisableHooks {
 
-		if err := execHooks(i.cfg.KubeClient, rel.Hooks, hooks.CRDInstall, i.Timeout); err != nil {
+		if err := i.cfg.execHook(rel, release.HookCRDInstall, i.Timeout); err != nil {
 			return i.failRelease(rel, fmt.Errorf("failed crd-install: %s", err))
 		}
 
-		if err := execHooks(i.cfg.KubeClient, rel.Hooks, hooks.PreInstall, i.Timeout); err != nil {
+		if err := i.cfg.execHook(rel, release.HookPreInstall, i.Timeout); err != nil {
 			return i.failRelease(rel, fmt.Errorf("failed pre-install: %s", err))
 		}
-
 	}
+
+
 
 	// At this point, we can do the install. Note that before we were detecting whether to
 	// do an update, but it's not clear whether we WANT to do an update if the re-use is set
@@ -236,7 +224,7 @@ func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 	}
 
 	if !i.DisableHooks {
-		if err := execHooks(i.cfg.KubeClient, rel.Hooks, hooks.PostInstall, i.Timeout); err != nil {
+		if err := i.cfg.execHook(rel, release.HookPostInstall, i.Timeout); err != nil {
 			return i.failRelease(rel, fmt.Errorf("failed post-install: %s", err))
 		}
 	}
@@ -368,7 +356,7 @@ func (c *Configuration) renderResources(ch *chart.Chart, values chartutil.Values
 	}
 
 	if ch.Metadata.KubeVersion != "" {
-		if !version.IsCompatibleRange(ch.Metadata.KubeVersion, caps.KubeVersion.String()) {
+		if !chartutil.IsCompatibleRange(ch.Metadata.KubeVersion, caps.KubeVersion.String()) {
 			return hs, b, "", errors.Errorf("chart requires kubernetesVersion: %s which is incompatible with Kubernetes %s", ch.Metadata.KubeVersion, caps.KubeVersion.String())
 		}
 	}
@@ -475,41 +463,6 @@ func ensureDirectoryForFile(file string) error {
 	return os.MkdirAll(baseDir, defaultDirectoryPermission)
 }
 
-// deletePolices represents a mapping between the key in the annotation for label deleting policy and its real meaning
-// FIXME: Can we refactor this out?
-var deletePolices = map[string]release.HookDeletePolicy{
-	hooks.HookSucceeded:      release.HookSucceeded,
-	hooks.HookFailed:         release.HookFailed,
-	hooks.BeforeHookCreation: release.HookBeforeHookCreation,
-}
-
-// hookHasDeletePolicy determines whether the defined hook deletion policy matches the hook deletion polices
-// supported by helm. If so, mark the hook as one should be deleted.
-func hookHasDeletePolicy(h *release.Hook, policy string) bool {
-	dp, ok := deletePolices[policy]
-	if !ok {
-		return false
-	}
-	for _, v := range h.DeletePolicies {
-		if dp == v {
-			return true
-		}
-	}
-	return false
-}
-
-// hookByWeight is a sorter for hooks
-type hookByWeight []*release.Hook
-
-func (x hookByWeight) Len() int      { return len(x) }
-func (x hookByWeight) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
-func (x hookByWeight) Less(i, j int) bool {
-	if x[i].Weight == x[j].Weight {
-		return x[i].Name < x[j].Name
-	}
-	return x[i].Weight < x[j].Weight
-}
-
 // NameAndChart returns the name and chart that should be used.
 //
 // This will read the flags and handle name generation if necessary.
@@ -592,7 +545,6 @@ OUTER:
 // Order of resolution:
 // - relative to current working directory
 // - if path is absolute or begins with '.', error out here
-// - chart repos in $HELM_HOME
 // - URL
 //
 // If 'verify' is true, this will attempt to also verify the chart.
@@ -616,16 +568,10 @@ func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (s
 		return name, errors.Errorf("path %q not found", name)
 	}
 
-	crepo := filepath.Join(settings.Home.Repository(), name)
-	if _, err := os.Stat(crepo); err == nil {
-		return filepath.Abs(crepo)
-	}
-
 	dl := downloader.ChartDownloader{
-		HelmHome: settings.Home,
-		Out:      os.Stdout,
-		Keyring:  c.Keyring,
-		Getters:  getter.All(settings),
+		Out:     os.Stdout,
+		Keyring: c.Keyring,
+		Getters: getter.All(settings),
 		Options: []getter.Option{
 			getter.WithBasicAuth(c.Username, c.Password),
 		},
@@ -642,11 +588,11 @@ func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (s
 		name = chartURL
 	}
 
-	if _, err := os.Stat(settings.Home.Archive()); os.IsNotExist(err) {
-		os.MkdirAll(settings.Home.Archive(), 0744)
+	if _, err := os.Stat(helmpath.Archive()); os.IsNotExist(err) {
+		os.MkdirAll(helmpath.Archive(), 0744)
 	}
 
-	filename, _, err := dl.DownloadTo(name, version, settings.Home.Archive())
+	filename, _, err := dl.DownloadTo(name, version, helmpath.Archive())
 	if err == nil {
 		lname, err := filepath.Abs(filename)
 		if err != nil {
@@ -658,115 +604,4 @@ func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (s
 	}
 
 	return filename, errors.Errorf("failed to download %q (hint: running `helm repo update` may help)", name)
-}
-
-// MergeValues merges values from files specified via -f/--values and
-// directly via --set or --set-string, marshaling them to YAML
-func (v *ValueOptions) MergeValues(settings cli.EnvSettings) error {
-	base := map[string]interface{}{}
-
-	// User specified a values files via -f/--values
-	for _, filePath := range v.ValueFiles {
-		currentMap := map[string]interface{}{}
-
-		bytes, err := readFile(filePath, settings)
-		if err != nil {
-			return err
-		}
-
-		if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
-			return errors.Wrapf(err, "failed to parse %s", filePath)
-		}
-		// Merge with the previous map
-		base = mergeMaps(base, currentMap)
-	}
-
-	// User specified a value via --set
-	for _, value := range v.Values {
-		if err := strvals.ParseInto(value, base); err != nil {
-			return errors.Wrap(err, "failed parsing --set data")
-		}
-	}
-
-	// User specified a value via --set-string
-	for _, value := range v.StringValues {
-		if err := strvals.ParseIntoString(value, base); err != nil {
-			return errors.Wrap(err, "failed parsing --set-string data")
-		}
-	}
-
-	v.rawValues = base
-	return nil
-}
-
-func NewValueOptions(values map[string]interface{}) ValueOptions {
-	return ValueOptions{
-		rawValues: values,
-	}
-}
-
-// mergeValues merges source and destination map, preferring values from the source map
-func mergeValues(dest, src map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{})
-	for k, v := range dest {
-		out[k] = v
-	}
-	for k, v := range src {
-		if _, ok := out[k]; !ok {
-			// If the key doesn't exist already, then just set the key to that value
-		} else if nextMap, ok := v.(map[string]interface{}); !ok {
-			// If it isn't another map, overwrite the value
-		} else if destMap, isMap := out[k].(map[string]interface{}); !isMap {
-			// Edge case: If the key exists in the destination, but isn't a map
-			// If the source map has a map for this key, prefer it
-		} else {
-			// If we got to this point, it is a map in both, so merge them
-			out[k] = mergeValues(destMap, nextMap)
-			continue
-		}
-		out[k] = v
-	}
-	return out
-}
-
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
-					continue
-				}
-			}
-		}
-		out[k] = v
-	}
-	return out
-}
-
-// readFile load a file from stdin, the local directory, or a remote file with a url.
-func readFile(filePath string, settings cli.EnvSettings) ([]byte, error) {
-	if strings.TrimSpace(filePath) == "-" {
-		return ioutil.ReadAll(os.Stdin)
-	}
-	u, _ := url.Parse(filePath)
-	p := getter.All(settings)
-
-	// FIXME: maybe someone handle other protocols like ftp.
-	getterConstructor, err := p.ByScheme(u.Scheme)
-
-	if err != nil {
-		return ioutil.ReadFile(filePath)
-	}
-
-	getter, err := getterConstructor(getter.WithURL(filePath))
-	if err != nil {
-		return []byte{}, err
-	}
-	data, err := getter.Get(filePath)
-	return data.Bytes(), err
 }

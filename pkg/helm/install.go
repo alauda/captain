@@ -28,7 +28,6 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 	client.Timeout = 180 * time.Second
 	out := os.Stdout
 	settings := cli.EnvSettings{
-		Home:  getHelmHome(),
 		Debug: true,
 	}
 
@@ -66,7 +65,6 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 	if err != nil {
 		return nil, err
 	}
-	client.ValueOptions = action.NewValueOptions(values)
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
@@ -92,7 +90,6 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 				man := &downloader.Manager{
 					Out:        out,
 					ChartPath:  cp,
-					HelmHome:   settings.Home,
 					Keyring:    client.ChartPathOptions.Keyring,
 					SkipUpdate: false,
 					Getters:    getter.All(settings),
@@ -106,7 +103,7 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 		}
 	}
 
-	return client.Run(chartRequested)
+	return client.Run(chartRequested, values)
 }
 
 // isChartInstallable validates if a chart can be installed
