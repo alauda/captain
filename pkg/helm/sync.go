@@ -2,6 +2,7 @@ package helm
 
 import (
 	"os"
+	"strings"
 
 	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/captain/pkg/cluster"
@@ -53,7 +54,17 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error
 	chartPath, err := client.ChartPathOptions.LocateChart(chrt, settings)
 	if err != nil {
 		klog.Errorf("locate chart %s error: %s", chartPath, err.Error())
-		return nil, err
+		// a simple string match
+		if client.Version == "" && strings.Contains(err.Error(), " no chart version found for") {
+			klog.Info("no normal version found, try using devel flag")
+			client.Version = ">0.0.0-0"
+			chartPath, err = client.ChartPathOptions.LocateChart(chrt, settings)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	// load
