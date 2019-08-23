@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/captain/pkg/helm"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
@@ -15,7 +16,21 @@ func (c *Controller) updateChartRepoStatus(cr *v1alpha1.ChartRepo, phase v1alpha
 
 	_, err := c.hrClientSet.AppV1alpha1().ChartRepos(cr.Namespace).Update(cr)
 	if err != nil {
-		klog.Error("update chartrepo error: ", err)
+		if apierrors.IsConflict(err) {
+			klog.Warningf("chartrepo update conflict, rerty... ", cr.GetName())
+			old, err := c.hrClientSet.AppV1alpha1().ChartRepos(cr.Namespace).Get(cr.GetName(), v1.GetOptions{})
+			if err != nil {
+				klog.Error("chartrepo update-get error:", err)
+			} else {
+				cr.ResourceVersion = old.ResourceVersion
+				_, err := c.hrClientSet.AppV1alpha1().ChartRepos(cr.Namespace).Update(cr)
+				if err != nil {
+					klog.Error("chartrepo update-update error:", err)
+				}
+			}
+		} else {
+			klog.Error("update chartrepo error: ", err)
+		}
 	}
 }
 
