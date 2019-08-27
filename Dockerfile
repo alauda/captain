@@ -1,4 +1,4 @@
-FROM golang:1.12.4
+FROM golang:1.12.9
 
 COPY . $GOPATH/src/github.com/alauda/captain
 WORKDIR $GOPATH/src/github.com/alauda/captain
