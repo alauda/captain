@@ -306,6 +306,10 @@ func (c *Controller) syncHandler(key string) error {
 
 		if helm.IsHelmRequestSynced(helmRequest) {
 			klog.Infof("HelmRequest %s synced", helmRequest.Name)
+			if helmRequest.Status.Phase != alpha1.HelmRequestSynced {
+				klog.Infof("helm request phase not synced, trying to set it")
+				return c.updateHelmRequestPhase(helmRequest, alpha1.HelmRequestSynced)
+			}
 			return nil
 		}
 		klog.Infof("sync HelmRequest %s to cluster %s", key, helmRequest.Spec.ClusterName)
