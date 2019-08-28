@@ -9,8 +9,8 @@ Captain is a Helm 3 Controller
 The [Helm 3 Design Proposal](https://github.com/helm/community/blob/master/helm-v3/000-helm-v3.md) has been exist for a while, and the helm 
 developer group is focused on the core helm 3 development, this is the first implementation of Helm3 Controller based on the Proposal.
 
-This project is based on the core [helm](https://github.com/helm/helm) code, which promised to be act as an library. Since it's not official 
-released yet, we add some little medication to help create this controller. Of course this will be unnecessary in the future. 
+This project is based on the core [helm](https://github.com/helm/helm) v3 code, which promised to be act as an library. Since it's not official 
+released yet (alpha stage for now), we add some little medication to help create this controller([alauda/helm](https://github.com/alauda/helm),  of course this will be unnecessary in the future.).
 
 ## Features
 * HelmRequest and Release CRD, namespace based
