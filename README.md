@@ -63,8 +63,8 @@ For the detailed explain and advanced usage, please check the documentation belo
 ## Future Plans
 
 * Release Version secret support
-* Repo CRD
 * Repo proxy support
+* Rollback/Update kubectl plugin 
 * Data migration tool from Helm2 release to Helm3 Release
 
 
