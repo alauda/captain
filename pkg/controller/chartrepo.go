@@ -17,7 +17,7 @@ func (c *Controller) updateChartRepoStatus(cr *v1alpha1.ChartRepo, phase v1alpha
 	_, err := c.hrClientSet.AppV1alpha1().ChartRepos(cr.Namespace).Update(cr)
 	if err != nil {
 		if apierrors.IsConflict(err) {
-			klog.Warningf("chartrepo update conflict, rerty... ", cr.GetName())
+			klog.Warningf("chartrepo %s update conflict, rerty... ", cr.GetName())
 			old, err := c.hrClientSet.AppV1alpha1().ChartRepos(cr.Namespace).Get(cr.GetName(), v1.GetOptions{})
 			if err != nil {
 				klog.Error("chartrepo update-get error:", err)
