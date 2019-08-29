@@ -157,10 +157,8 @@ func (c *Client) Update(original, target ResourceList, force bool) (*Result, err
 		if !force {
 			existObject = originalInfo.Object
 		}
-		// not delete crd, it's too bad...
-		force = info.Mapping.GroupVersionKind.Kind != "CustomResourceDefinition"
 
-		if err := updateResource(c, info, existObject, force); err != nil {
+		if err := updateResource(c, info, existObject, info.Mapping.GroupVersionKind.Kind != "CustomResourceDefinition"); err != nil {
 			c.Log("error updating the resource %q:\n\t %v", info.Name, err)
 			updateErrors = append(updateErrors, err.Error())
 		}
