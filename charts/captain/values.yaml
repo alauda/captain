@@ -13,4 +13,4 @@ global:
   images:
     captain:
       repository: alaudapublic/captain
-      tag: v0.9.0
+      tag: v0.9.1
