@@ -72,13 +72,14 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 
 // sync install/update chart to one cluster
 func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest) error {
-	info.Namespace = helmRequest.Spec.Namespace
+	ci := info
+	ci.Namespace = helmRequest.Spec.Namespace
 	if err := release.EnsureCRDCreated(info.ToRestConfig()); err != nil {
 		klog.Errorf("sync release crd error: %s", err.Error())
 		return err
 	}
 
-	rel, err := helm.Sync(helmRequest, info)
+	rel, err := helm.Sync(helmRequest, ci)
 	if err != nil {
 		return err
 	}
