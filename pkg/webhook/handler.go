@@ -1,7 +1,7 @@
 package webhook
 
 import (
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

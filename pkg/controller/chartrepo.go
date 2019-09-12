@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/captain/pkg/helm"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"

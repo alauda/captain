@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/release"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	funk "github.com/thoas/go-funk"
 	"helm.sh/helm/pkg/action"
 	corev1 "k8s.io/api/core/v1"

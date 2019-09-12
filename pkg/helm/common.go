@@ -1,8 +1,8 @@
 package helm
 
 import (
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/component-base/hash"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 )
 
 //IsHelmRequestSynced check if a HelmRequest is synced

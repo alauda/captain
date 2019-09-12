@@ -5,7 +5,7 @@ import (
 
 	"github.com/alauda/captain/pkg/helm"
 
-	alpha1 "github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )

@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
-	clientset "github.com/alauda/captain/pkg/client/clientset/versioned"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
