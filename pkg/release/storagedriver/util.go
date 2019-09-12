@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"helm.sh/helm/pkg/chart"
 	rspb "helm.sh/helm/pkg/release"
 )

@@ -46,11 +46,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	alpha1 "github.com/alauda/captain/pkg/apis/app/v1alpha1"
-	clientset "github.com/alauda/captain/pkg/client/clientset/versioned"
+	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 
-	informers "github.com/alauda/captain/pkg/client/informers/externalversions"
-	listers "github.com/alauda/captain/pkg/client/listers/app/v1alpha1"
+	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
+	listers "github.com/alauda/helm-crds/pkg/client/listers/app/v1alpha1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )

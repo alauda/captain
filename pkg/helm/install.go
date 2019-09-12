@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
 	"github.com/alauda/captain/pkg/cluster"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"github.com/pkg/errors"
 	"helm.sh/helm/pkg/action"
 	"helm.sh/helm/pkg/chart"

@@ -1,7 +1,7 @@
 package controller
 
 import (
-	appscheme "github.com/alauda/captain/pkg/client/clientset/versioned/scheme"
+	appscheme "github.com/alauda/helm-crds/pkg/client/clientset/versioned/scheme"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 )

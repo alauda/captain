@@ -34,10 +34,20 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
 # github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446
-github.com/alauda/component-base/regex
 github.com/alauda/component-base/hash
 github.com/alauda/component-base/system
 github.com/alauda/component-base/crd
+github.com/alauda/component-base/regex
+# github.com/alauda/helm-crds v0.0.0-20190904040405-5d13ef317cd8
+github.com/alauda/helm-crds/pkg/apis/app/v1alpha1
+github.com/alauda/helm-crds/pkg/client/clientset/versioned
+github.com/alauda/helm-crds/pkg/client/clientset/versioned/scheme
+github.com/alauda/helm-crds/pkg/client/informers/externalversions
+github.com/alauda/helm-crds/pkg/client/listers/app/v1alpha1
+github.com/alauda/helm-crds/pkg/client/clientset/versioned/typed/app/v1alpha1
+github.com/alauda/helm-crds/pkg/client/informers/externalversions/app
+github.com/alauda/helm-crds/pkg/client/informers/externalversions/internalinterfaces
+github.com/alauda/helm-crds/pkg/client/informers/externalversions/app/v1alpha1
 # github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 github.com/asaskevich/govalidator
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
@@ -364,16 +374,16 @@ gopkg.in/square/go-jose.v2/json
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
 # helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-alpha.1.0.20190829021852-0235ba407f6d+incompatible
-helm.sh/helm/pkg/chartutil
-helm.sh/helm/pkg/release
 helm.sh/helm/pkg/action
 helm.sh/helm/pkg/chart
 helm.sh/helm/pkg/chart/loader
+helm.sh/helm/pkg/chartutil
 helm.sh/helm/pkg/cli
 helm.sh/helm/pkg/downloader
 helm.sh/helm/pkg/getter
 helm.sh/helm/pkg/helmpath
 helm.sh/helm/pkg/kube
+helm.sh/helm/pkg/release
 helm.sh/helm/pkg/repo
 helm.sh/helm/pkg/storage
 helm.sh/helm/pkg/storage/driver
@@ -441,49 +451,49 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apiextensions-apiserver/pkg/features
 # k8s.io/apimachinery v0.0.0-20190624085041-961b39a1baa0 => k8s.io/apimachinery v0.0.0-20190515023456-b74e4c97951f
 k8s.io/apimachinery/pkg/util/wait
+k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/apis/meta/v1
+k8s.io/apimachinery/pkg/types
+k8s.io/apimachinery/pkg/util/errors
+k8s.io/apimachinery/pkg/util/runtime
+k8s.io/apimachinery/pkg/labels
+k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/runtime/schema
-k8s.io/apimachinery/pkg/api/errors
-k8s.io/apimachinery/pkg/runtime/serializer
-k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/watch
-k8s.io/apimachinery/pkg/types
-k8s.io/apimachinery/pkg/labels
-k8s.io/apimachinery/pkg/util/errors
-k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/util/sets
+k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/pkg/api/meta
+k8s.io/apimachinery/pkg/util/validation/field
 k8s.io/apimachinery/pkg/api/resource
-k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/selection
-k8s.io/apimachinery/pkg/conversion/queryparams
-k8s.io/apimachinery/pkg/util/json
-k8s.io/apimachinery/pkg/util/naming
-k8s.io/apimachinery/pkg/util/validation/field
-k8s.io/apimachinery/pkg/version
-k8s.io/apimachinery/pkg/util/clock
-k8s.io/apimachinery/pkg/runtime/serializer/json
-k8s.io/apimachinery/pkg/runtime/serializer/protobuf
-k8s.io/apimachinery/pkg/runtime/serializer/recognizer
-k8s.io/apimachinery/pkg/runtime/serializer/versioning
-k8s.io/apimachinery/pkg/util/strategicpatch
+k8s.io/apimachinery/pkg/util/intstr
+k8s.io/apimachinery/pkg/runtime/serializer
 k8s.io/apimachinery/pkg/util/cache
+k8s.io/apimachinery/pkg/util/clock
 k8s.io/apimachinery/pkg/util/diff
+k8s.io/apimachinery/pkg/util/naming
+k8s.io/apimachinery/pkg/util/strategicpatch
+k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured/unstructuredscheme
 k8s.io/apimachinery/pkg/util/yaml
+k8s.io/apimachinery/pkg/conversion/queryparams
+k8s.io/apimachinery/pkg/version
+k8s.io/apimachinery/pkg/runtime/serializer/json
+k8s.io/apimachinery/pkg/runtime/serializer/versioning
 k8s.io/apimachinery/pkg/util/uuid
 k8s.io/apimachinery/third_party/forked/golang/reflect
-k8s.io/apimachinery/pkg/util/framer
+k8s.io/apimachinery/pkg/runtime/serializer/protobuf
+k8s.io/apimachinery/pkg/runtime/serializer/recognizer
+k8s.io/apimachinery/pkg/apis/meta/internalversion
 k8s.io/apimachinery/pkg/util/mergepatch
 k8s.io/apimachinery/third_party/forked/golang/json
-k8s.io/apimachinery/pkg/apis/meta/internalversion
 k8s.io/apimachinery/pkg/api/equality
+k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
 k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/api/validation
@@ -514,13 +524,9 @@ k8s.io/cli-runtime/pkg/kustomize/k8sdeps/kv
 # k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible => k8s.io/client-go v0.0.0-20190515063710-7b18d6600f6b
 k8s.io/client-go/rest
 k8s.io/client-go/tools/clientcmd
-k8s.io/client-go/discovery
-k8s.io/client-go/util/flowcontrol
-k8s.io/client-go/discovery/fake
-k8s.io/client-go/testing
-k8s.io/client-go/tools/cache
 k8s.io/client-go/kubernetes
 k8s.io/client-go/kubernetes/scheme
+k8s.io/client-go/tools/cache
 k8s.io/client-go/tools/record
 k8s.io/client-go/util/workqueue
 k8s.io/client-go/tools/clientcmd/api
@@ -530,13 +536,13 @@ k8s.io/client-go/rest/watch
 k8s.io/client-go/tools/metrics
 k8s.io/client-go/transport
 k8s.io/client-go/util/cert
+k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/tools/auth
 k8s.io/client-go/tools/clientcmd/api/latest
 k8s.io/client-go/util/homedir
 k8s.io/client-go/tools/leaderelection
 k8s.io/client-go/tools/leaderelection/resourcelock
-k8s.io/client-go/tools/pager
-k8s.io/client-go/util/retry
+k8s.io/client-go/discovery
 k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1
 k8s.io/client-go/kubernetes/typed/apps/v1
 k8s.io/client-go/kubernetes/typed/apps/v1beta1
@@ -573,6 +579,8 @@ k8s.io/client-go/kubernetes/typed/settings/v1alpha1
 k8s.io/client-go/kubernetes/typed/storage/v1
 k8s.io/client-go/kubernetes/typed/storage/v1alpha1
 k8s.io/client-go/kubernetes/typed/storage/v1beta1
+k8s.io/client-go/tools/pager
+k8s.io/client-go/util/retry
 k8s.io/client-go/tools/record/util
 k8s.io/client-go/tools/reference
 k8s.io/client-go/tools/watch
@@ -649,9 +657,9 @@ k8s.io/kubernetes/pkg/kubelet/types
 k8s.io/kubernetes/pkg/apis/autoscaling
 k8s.io/kubernetes/pkg/apis/scheduling
 # k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
-k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
+k8s.io/utils/integer
 k8s.io/utils/exec
 k8s.io/utils/pointer
 k8s.io/utils/net

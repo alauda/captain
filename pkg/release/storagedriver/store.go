@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alauda/captain/pkg/apis/app/v1alpha1"
-	releaseclient "github.com/alauda/captain/pkg/client/clientset/versioned/typed/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	releaseclient "github.com/alauda/helm-crds/pkg/client/clientset/versioned/typed/app/v1alpha1"
 	"github.com/pkg/errors"
 	rspb "helm.sh/helm/pkg/release"
 	"helm.sh/helm/pkg/storage/driver"
