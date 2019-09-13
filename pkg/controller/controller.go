@@ -461,9 +461,10 @@ func (c *Controller) deleteHelmRequest(hr *alpha1.HelmRequest) error {
 
 	// loop to delete in all clusters
 	for _, info := range clusters {
-		info.Namespace = hr.Spec.Namespace
-		klog.Infof("delete HelmRequest %s for cluster %s", hr.GetName(), info.Name)
-		err := helm.Delete(hr, info)
+		ci := info
+		ci.Namespace = hr.Spec.Namespace
+		klog.Infof("delete HelmRequest %s for cluster %s", hr.GetName(), ci.Name)
+		err := helm.Delete(hr, ci)
 		if err != nil {
 			errs = append(errs, err)
 		}
