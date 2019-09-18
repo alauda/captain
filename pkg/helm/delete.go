@@ -1,6 +1,8 @@
 package helm
 
 import (
+	"strings"
+
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"github.com/pkg/errors"
@@ -27,6 +29,13 @@ func Delete(hr *v1alpha1.HelmRequest, info *cluster.Info) error {
 			klog.Warning("release not exist when delete, ignore it:", name)
 			return nil
 		}
+
+		// if we cannot access the target cluster, the helmrequest should be able to be deleted
+		if strings.HasSuffix(err.Error(), "EOF") || strings.Contains(err.Error(), "connect: connection refused") {
+			klog.Warningf("target cluster %s cannot access when delete helmrequest %s", hr.Spec.ClusterName, hr.GetName())
+			return nil
+		}
+
 		return err
 	}
 	if res != nil && res.Info != "" {
