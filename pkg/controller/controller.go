@@ -71,8 +71,8 @@ type Controller struct {
 	// usage:
 	// 1. retrieve cluster admin token from secret
 	kubeClient kubernetes.Interface
-	// hrClientSet is a clientset for our own API group
-	hrClientSet clientset.Interface
+	// appClientSet is a clientset for our own API group
+	appClientSet clientset.Interface
 
 	clusterConfig clusterConfig
 
@@ -125,8 +125,8 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 	repoInformer := chartRepoInformerFactory.App().V1alpha1().ChartRepos()
 
 	controller := &Controller{
-		kubeClient:  kubeClient,
-		hrClientSet: appClient,
+		kubeClient:   kubeClient,
+		appClientSet: appClient,
 		clusterConfig: clusterConfig{
 			clusterNamespace:  opt.ClusterNamespace,
 			clusterClient:     clusterClient,
@@ -364,17 +364,17 @@ func (c *Controller) updateHelmRequestPhase(helmRequest *alpha1.HelmRequest, pha
 	// we must use Update instead of UpdateStatus to update the Status block of the HelmRequest resource.
 	// UpdateStatus will not allow changes to the Spec of the resource,
 	// which is ideal for ensuring nothing other than resource status has been updated.
-	_, err := c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(request)
+	_, err := c.appClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(request)
 	if err != nil {
 		if apierrors.IsConflict(err) {
 			klog.Warning("update helm request status conflict, retry...")
-			origin, err := c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).Get(helmRequest.Name, metav1.GetOptions{})
+			origin, err := c.appClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).Get(helmRequest.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
 			klog.Warningf("origin status: %+v, current: %+v", origin.Status, request.Status)
 			origin.Status = *request.Status.DeepCopy()
-			_, err = c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(origin)
+			_, err = c.appClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(origin)
 			if err != nil {
 				klog.Error("retrying update helmrequest status error:", err)
 			}
@@ -391,7 +391,7 @@ func (c *Controller) removeFinalizer(helmRequest *alpha1.HelmRequest) error {
 		klog.Infof("found finalizers for helmrequest: %s", helmRequest.Name)
 		data := `{"metadata":{"finalizers":null}}`
 		// ? only patch can work?
-		_, err := c.hrClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).Patch(
+		_, err := c.appClientSet.AppV1alpha1().HelmRequests(helmRequest.Namespace).Patch(
 			helmRequest.Name, types.MergePatchType, []byte(data),
 		)
 		return err
@@ -461,10 +461,10 @@ func (c *Controller) deleteHelmRequest(hr *alpha1.HelmRequest) error {
 
 	// loop to delete in all clusters
 	for _, info := range clusters {
-		ci := info
+		ci := *info
 		ci.Namespace = hr.Spec.Namespace
 		klog.Infof("delete HelmRequest %s for cluster %s", hr.GetName(), ci.Name)
-		err := helm.Delete(hr, ci)
+		err := helm.Delete(hr, &ci)
 		if err != nil {
 			errs = append(errs, err)
 		}

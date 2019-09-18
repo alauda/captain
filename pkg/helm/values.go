@@ -60,6 +60,7 @@ func getValues(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, er
 }
 
 func getValuesFromSource(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, error) {
+	klog.V(2).Infof("in cluster rest config is: %+v", cfg)
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, err

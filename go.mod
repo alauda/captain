@@ -18,7 +18,10 @@ replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.6.0
 
+replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20190915014518-6c1be05f7d6e
+
 require (
+	github.com/Jeffail/gabs/v2 v2.1.0
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/sprig v2.18.0+incompatible // indirect

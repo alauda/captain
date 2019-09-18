@@ -73,7 +73,7 @@ func (c *Controller) parseClusterInfo(cr *v1alpha1.Cluster) (*cluster.Info, erro
 // if name is "", return current cluster info
 func (c *Controller) getClusterInfo(name string) (*cluster.Info, error) {
 	if name == "" {
-		klog.V(7).Info("find empty cluster name, use current.")
+		klog.V(2).Info("find empty cluster name, use current.")
 		return cluster.RestConfigToCluster(c.restConfig, cluster.DefaultClusterName), nil
 	}
 

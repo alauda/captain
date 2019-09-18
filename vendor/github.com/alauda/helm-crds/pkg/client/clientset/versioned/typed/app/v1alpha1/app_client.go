@@ -26,6 +26,7 @@ import (
 
 type AppV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	ChartsGetter
 	ChartReposGetter
 	HelmRequestsGetter
 	ReleasesGetter
@@ -34,6 +35,10 @@ type AppV1alpha1Interface interface {
 // AppV1alpha1Client is used to interact with features provided by the app.alauda.io group.
 type AppV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *AppV1alpha1Client) Charts(namespace string) ChartInterface {
+	return newCharts(c, namespace)
 }
 
 func (c *AppV1alpha1Client) ChartRepos(namespace string) ChartRepoInterface {

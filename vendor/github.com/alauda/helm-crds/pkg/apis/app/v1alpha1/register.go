@@ -40,6 +40,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ReleaseList{},
 		&ChartRepo{},
 		&ChartRepoList{},
+		&Chart{},
+		&ChartList{},
 	)
 
 	scheme.AddKnownTypes(

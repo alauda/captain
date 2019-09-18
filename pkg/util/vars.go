@@ -9,4 +9,7 @@ const (
 
 	// FinalizerName is the finalizer name we append to each HelmRequest resource
 	FinalizerName = "captain.alauda.io"
+
+	// ProjectKey is the annotation key for project
+	ProjectKey = "alauda.io/project"
 )
