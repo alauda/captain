@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// Charts returns a ChartInformer.
+	Charts() ChartInformer
 	// ChartRepos returns a ChartRepoInformer.
 	ChartRepos() ChartRepoInformer
 	// HelmRequests returns a HelmRequestInformer.
@@ -41,6 +43,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// Charts returns a ChartInformer.
+func (v *version) Charts() ChartInformer {
+	return &chartInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ChartRepos returns a ChartRepoInformer.

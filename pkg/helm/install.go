@@ -19,7 +19,7 @@ import (
 )
 
 //install install a chart to a cluster, If the release already exist, upgrade it
-func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error) {
+func install(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.Info) (*release.Release, error) {
 	cfg, err := newActionConfig(info)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, er
 
 	klog.V(9).Infof("CHART PATH: %s\n", cp)
 
-	values, err := getValues(hr, info.ToRestConfig())
+	values, err := getValues(hr, inCluster.ToRestConfig())
 	if err != nil {
 		return nil, err
 	}

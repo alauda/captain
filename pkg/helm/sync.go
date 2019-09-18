@@ -17,7 +17,8 @@ import (
 
 // Sync = install + upgrade
 // When sync done, add the release note to HelmRequest status
-func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error) {
+// inCluster info is used to retrieve config info for valuesFrom
+func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.Info) (*release.Release, error) {
 	name := getReleaseName(hr)
 	out := os.Stdout
 
@@ -43,7 +44,7 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error
 	}
 
 	// merge values
-	values, err := getValues(hr, info.ToRestConfig())
+	values, err := getValues(hr, inCluster.ToRestConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info) (*release.Release, error
 		klog.Warningf("Release %q does not exist. Installing it now.\n", name)
 		// emptyValues := map[string]interface{}{}
 		// rel := createRelease(cfg, ch, name, client.Namespace, emptyValues)
-		resp, err := install(hr, info)
+		resp, err := install(hr, info, inCluster)
 		if err != nil {
 			// if error occurred, just return. Otherwise the upgrade will stuck at not deploy found
 			klog.Warning("install before upgrade failed: ", err)

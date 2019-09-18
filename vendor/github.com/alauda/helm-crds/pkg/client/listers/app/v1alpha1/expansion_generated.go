@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// ChartListerExpansion allows custom methods to be added to
+// ChartLister.
+type ChartListerExpansion interface{}
+
+// ChartNamespaceListerExpansion allows custom methods to be added to
+// ChartNamespaceLister.
+type ChartNamespaceListerExpansion interface{}
+
 // ChartRepoListerExpansion allows custom methods to be added to
 // ChartRepoLister.
 type ChartRepoListerExpansion interface{}

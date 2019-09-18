@@ -17,8 +17,10 @@ func (c *Controller) newChartRepoHandler() cache.ResourceEventHandler {
 	updateFunc := func(old, new interface{}) {
 		// oldChartRepo := old.(*alpha1.ChartRepo)
 		// newChartRepo := new.(*alpha1.ChartRepo)
+		klog.V(2).Info("receive new chartrepo")
 
-		c.syncChartRepo(new)
+		// TODO: use a queue
+		go c.syncChartRepo(new)
 
 		//if oldChartRepo.Spec.Secret != nil && newChartRepo.Spec.Secret != nil {
 		//	if oldChartRepo.Spec.Secret.Name != newChartRepo.Spec.Secret.Name {
@@ -38,6 +40,7 @@ func (c *Controller) newChartRepoHandler() cache.ResourceEventHandler {
 			if err := helm.RemoveRepository(cr.GetName()); err != nil {
 				klog.Error("remove repo from helm error:", err)
 			}
+			klog.Info("delete chartrepo: ", cr.GetName())
 		}
 	}
 
@@ -70,6 +73,10 @@ func (c *Controller) newHelmRequestHandler() cache.ResourceEventHandler {
 			if newHR.DeletionTimestamp != nil {
 				klog.V(4).Infof("get an helmrequest with deletiontimestap: %s", newHR.Name)
 				c.enqueueHelmRequest(new)
+			}
+
+			if newHR.Status.Phase == alpha1.HelmRequestPending {
+				klog.V(4).Infof("")
 			}
 
 			if oldHR.ResourceVersion == newHR.ResourceVersion {

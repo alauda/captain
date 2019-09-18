@@ -10,12 +10,13 @@ import (
 	"github.com/ghodss/yaml"
 	"helm.sh/helm/pkg/chartutil"
 
-
-	funk "github.com/thoas/go-funk"
+	"github.com/thoas/go-funk"
 
 	"github.com/alauda/component-base/regex"
 	"github.com/fatih/structs"
 	"helm.sh/helm/pkg/release"
+
+	"helm.sh/helm/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
@@ -25,7 +26,6 @@ const (
 	// FinalizerName is the finalizer name we append to each HelmRequest resource
 	FinalizerName = "captain.alauda.io"
 )
-
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -167,6 +167,89 @@ type ChartRepoList struct {
 	metav1.ListMeta `son:"metadata,omitempty"`
 
 	Items []ChartRepo `json:"items"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Chart struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec ChartSpec `json:"spec"`
+}
+
+type ChartSpec struct {
+	Versions []*ChartVersion `json:"versions,omitempty"`
+}
+
+type ChartVersion struct {
+	repo.ChartVersion
+}
+
+func (in *ChartVersion) DeepCopyInto(out *ChartVersion) {
+	if in == nil {
+		return
+	}
+
+	b, err := yaml.Marshal(in.ChartVersion)
+	if err != nil {
+		return
+	}
+	var r repo.ChartVersion
+	err = yaml.Unmarshal(b, &r)
+	if err != nil {
+		return
+	}
+
+	out.ChartVersion = r
+}
+
+// ref: https://github.com/helm/helm/blob/master/docs/charts.md
+/*type ChartVersion struct {
+	// The URL to a relevant project page, git repo, or contact person
+	Home string `json:"home,omitempty"`
+	// Source is the URL to the source code of this chart
+	Sources string `json:"sources,omitempty"`
+	// A SemVer 2 conformant version string of the chart
+	Version string `json:"version,omitempty"`
+	// A one-sentence description of the chart
+	Description string `json:"description,omitempty"`
+	// A list of string keywords
+	Keywords []string `json:"keywords, omitempty"`
+	// A list of name and URL/email address combinations for the maintainer(s)
+	Maintainers []*chart.Maintainer `json:"maintainers,omitempty"`
+	// The URL to an icon file.
+	Icon string `json:"icon,omitempty"`
+
+	// The API Version of this chart.
+	APIVersion string `json:"apiVersion, omitempty"`
+
+	// The condition to check to enable chart
+	Condition string `json:"condition,omitempty"`
+
+	// The version of the application enclosed inside of this chart.
+	AppVersion string `json:"appVersion,omitempty"`
+	// Whether or not this chart is deprecated
+	Deprecated bool `json:"deprecated,omitempty"`
+	// Annotations are additional mappings uninterpreted by Helm,
+	// made available for inspection by other applications.
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
+	KubeVersion string `json:"kubeVersion,omitempty"`
+
+	Created metav1.Time `json:"created,omitempty"`
+
+	Digest string `json:"digest,omitempty"`
+}*/
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ChartList struct {
+	metav1.TypeMeta `json:",inline"`
+	// +optional
+	metav1.ListMeta `son:"metadata,omitempty"`
+
+	Items []Chart `json:"items"`
 }
 
 // +genclient
@@ -410,8 +493,6 @@ func (in *HelmRequest) IsClusterSynced(name string) bool {
 
 	return false
 }
-
-
 
 // ParseChartName is a simple function that parse chart name
 func ParseChartName(name string) (repo, chart string) {

@@ -3,6 +3,8 @@ github.com/Azure/go-ansiterm/winterm
 github.com/Azure/go-ansiterm
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
+# github.com/Jeffail/gabs/v2 v2.1.0
+github.com/Jeffail/gabs/v2
 # github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e
 github.com/MakeNowJust/heredoc
 # github.com/Masterminds/goutils v1.1.0
@@ -38,7 +40,7 @@ github.com/alauda/component-base/hash
 github.com/alauda/component-base/system
 github.com/alauda/component-base/crd
 github.com/alauda/component-base/regex
-# github.com/alauda/helm-crds v0.0.0-20190904040405-5d13ef317cd8
+# github.com/alauda/helm-crds v0.0.0-20190904040405-5d13ef317cd8 => github.com/alauda/helm-crds v0.0.0-20190915014518-6c1be05f7d6e
 github.com/alauda/helm-crds/pkg/apis/app/v1alpha1
 github.com/alauda/helm-crds/pkg/client/clientset/versioned
 github.com/alauda/helm-crds/pkg/client/clientset/versioned/scheme
@@ -375,6 +377,7 @@ gopkg.in/square/go-jose.v2/json
 gopkg.in/yaml.v2
 # helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-alpha.1.0.20190829021852-0235ba407f6d+incompatible
 helm.sh/helm/pkg/action
+helm.sh/helm/pkg/repo
 helm.sh/helm/pkg/chart
 helm.sh/helm/pkg/chart/loader
 helm.sh/helm/pkg/chartutil
@@ -384,7 +387,6 @@ helm.sh/helm/pkg/getter
 helm.sh/helm/pkg/helmpath
 helm.sh/helm/pkg/kube
 helm.sh/helm/pkg/release
-helm.sh/helm/pkg/repo
 helm.sh/helm/pkg/storage
 helm.sh/helm/pkg/storage/driver
 helm.sh/helm/internal/experimental/registry
@@ -394,10 +396,10 @@ helm.sh/helm/pkg/lint
 helm.sh/helm/pkg/lint/support
 helm.sh/helm/pkg/provenance
 helm.sh/helm/pkg/releaseutil
+helm.sh/helm/internal/urlutil
 helm.sh/helm/internal/ignore
 helm.sh/helm/internal/sympath
 helm.sh/helm/internal/resolver
-helm.sh/helm/internal/urlutil
 helm.sh/helm/internal/tlsutil
 helm.sh/helm/internal/version
 helm.sh/helm/pkg/plugin
