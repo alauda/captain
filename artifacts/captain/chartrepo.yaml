@@ -1,0 +1,7 @@
+apiVersion: app.alauda.io/v1alpha1
+kind: ChartRepo
+metadata:
+  name: captain
+  namespace: alauda-system
+spec:
+  url: https://alauda.github.io/charts

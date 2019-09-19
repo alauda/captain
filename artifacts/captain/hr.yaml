@@ -1,0 +1,11 @@
+apiVersion: app.alauda.io/v1alpha1
+kind: HelmRequest
+metadata:
+  name: captain
+  namespace: captain
+spec:
+  chart: captain/captain
+  namespace: captain
+  version: v0.9.2
+  values:
+    namespace: captain
