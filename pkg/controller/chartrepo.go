@@ -9,7 +9,6 @@ import (
 	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"helm.sh/helm/pkg/repo"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -103,31 +102,41 @@ func (c *Controller) syncChartRepo(obj interface{}) {
 
 // createCharts create charts resource for a repo
 func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
+	checked := map[string]bool{}
 	index, err := helm.GetChartsForRepo(cr.GetName())
 	if err != nil {
 		return err
 	}
-
-	checked := map[string]bool{}
-
-	options := v1.GetOptions{}
-	for name, versions := range index.Entries {
+	for name, _ := range index.Entries {
 		checked[name] = true
+	}
+
+	existCharts := map[string]v1alpha1.Chart{}
+	listOptions := v1.ListOptions{
+		LabelSelector: fmt.Sprintf("repo=%s", cr.GetName()),
+	}
+	charts, err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).List(listOptions)
+	if err != nil {
+		return err
+	}
+	for _, item := range charts.Items {
+		name := strings.Split(item.GetName(), ".")[0]
+		existCharts[name] = item
+	}
+
+	for name, versions := range index.Entries {
 		chart := generateChartResource(versions, name, cr)
 
-		old, err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Get(getChartName(cr.GetName(), name), options)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				klog.Infof("chart %s/%s not found, create", cr.GetName(), name)
-				_, err = c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Create(chart)
-				if err != nil {
-					return err
-				}
-				continue
-			} else {
+		if _, ok := existCharts[name]; !ok {
+			klog.Infof("chart %s/%s not found, create", cr.GetName(), name)
+			_, err = c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Create(chart)
+			if err != nil {
 				return err
 			}
+			continue
 		}
+
+		old := existCharts[name]
 
 		if compareChart(old, chart) {
 			chart.SetResourceVersion(old.GetResourceVersion())
@@ -139,15 +148,7 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 
 	}
 
-	listOptions := v1.ListOptions{
-		LabelSelector: fmt.Sprintf("repo=%s", cr.GetName()),
-	}
-	charts, err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).List(listOptions)
-	if err != nil {
-		return err
-	}
-	for _, item := range charts.Items {
-		name := strings.Split(item.GetName(), ".")[0]
+	for name, item := range existCharts {
 		if !checked[name] {
 			err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Delete(item.GetName(), &v1.DeleteOptions{})
 			if err != nil {
@@ -163,7 +164,7 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 }
 
 // compareChart simply compare versions list length
-func compareChart(old *v1alpha1.Chart, new *v1alpha1.Chart) bool {
+func compareChart(old v1alpha1.Chart, new *v1alpha1.Chart) bool {
 	if len(old.Spec.Versions) != len(new.Spec.Versions) {
 		return true
 	}
