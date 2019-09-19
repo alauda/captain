@@ -149,7 +149,7 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 	for _, item := range charts.Items {
 		name := strings.Split(item.GetName(), ".")[0]
 		if !checked[name] {
-			err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Delete(item.GetName(), v1.DeleteOptions{})
+			err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Delete(item.GetName(), &v1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
