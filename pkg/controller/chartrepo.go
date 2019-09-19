@@ -108,9 +108,13 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 		return err
 	}
 
+	checked := map[string]bool{}
+
 	options := v1.GetOptions{}
 	for name, versions := range index.Entries {
+		checked[name] = true
 		chart := generateChartResource(versions, name, cr)
+
 		old, err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Get(getChartName(cr.GetName(), name), options)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -134,6 +138,26 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 		}
 
 	}
+
+	listOptions := v1.ListOptions{
+		LabelSelector: fmt.Sprintf("repo=%s", cr.GetName()),
+	}
+	charts, err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).List(listOptions)
+	if err != nil {
+		return err
+	}
+	for _, item := range charts.Items {
+		name := strings.Split(item.GetName(), ".")[0]
+		if !checked[name] {
+			err := c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Delete(item.GetName(), v1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+			klog.Info("delete charts: ", item.GetName())
+		}
+
+	}
+
 	return nil
 
 }
