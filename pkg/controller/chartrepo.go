@@ -9,6 +9,7 @@ import (
 	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"helm.sh/helm/pkg/repo"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -131,7 +132,9 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 			klog.Infof("chart %s/%s not found, create", cr.GetName(), name)
 			_, err = c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Create(chart)
 			if err != nil {
-				return err
+				if !apierrors.IsAlreadyExists(err) {
+					return err
+				}
 			}
 			continue
 		}
