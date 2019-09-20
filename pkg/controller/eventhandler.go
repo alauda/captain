@@ -20,7 +20,9 @@ func (c *Controller) newChartRepoHandler() cache.ResourceEventHandler {
 		klog.V(2).Info("receive new chartrepo")
 
 		// TODO: use a queue
-		go c.syncChartRepo(new)
+		//go c.syncChartRepo(new)
+
+		c.enqueueChartRepo(new)
 
 		//if oldChartRepo.Spec.Secret != nil && newChartRepo.Spec.Secret != nil {
 		//	if oldChartRepo.Spec.Secret.Name != newChartRepo.Spec.Secret.Name {
@@ -45,7 +47,7 @@ func (c *Controller) newChartRepoHandler() cache.ResourceEventHandler {
 	}
 
 	funcs := cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.syncChartRepo,
+		AddFunc:    c.enqueueChartRepo,
 		UpdateFunc: updateFunc,
 		DeleteFunc: deleteFunc,
 	}
