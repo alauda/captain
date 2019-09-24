@@ -56,6 +56,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 * [HelmRequest CRD](./docs/helmrequest.md)
 * [Release CRD](./docs/release.md)
 * [ChartRepo CRD](./docs/chartrepo.md)
+* [Chart CRD](./docs/chart.md)
 
 
 
