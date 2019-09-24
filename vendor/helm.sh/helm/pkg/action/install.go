@@ -30,6 +30,8 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/cli-runtime/pkg/resource"
 
 	"helm.sh/helm/pkg/chart"
 	"helm.sh/helm/pkg/chartutil"
@@ -37,7 +39,6 @@ import (
 	"helm.sh/helm/pkg/downloader"
 	"helm.sh/helm/pkg/engine"
 	"helm.sh/helm/pkg/getter"
-	"helm.sh/helm/pkg/helmpath"
 	kubefake "helm.sh/helm/pkg/kube/fake"
 	"helm.sh/helm/pkg/release"
 	"helm.sh/helm/pkg/releaseutil"
@@ -81,8 +82,10 @@ type Install struct {
 	NameTemplate     string
 	OutputDir        string
 	Atomic           bool
+	SkipCRDs         bool
 }
 
+// ChartPathOptions captures common options used for controlling chart paths
 type ChartPathOptions struct {
 	CaFile   string // --ca-file
 	CertFile string // --cert-file
@@ -102,12 +105,66 @@ func NewInstall(cfg *Configuration) *Install {
 	}
 }
 
+func (i *Install) installCRDs(crds []*chart.File) error {
+	// We do these one file at a time in the order they were read.
+	totalItems := []*resource.Info{}
+	for _, obj := range crds {
+		// Read in the resources
+		res, err := i.cfg.KubeClient.Build(bytes.NewBuffer(obj.Data))
+		if err != nil {
+			return errors.Wrapf(err, "failed to install CRD %s", obj.Name)
+		}
+
+		// Send them to Kube
+		if _, err := i.cfg.KubeClient.Create(res); err != nil {
+			// If the error is CRD already exists, continue.
+			if apierrors.IsAlreadyExists(err) {
+				crdName := res[0].Name
+				i.cfg.Log("CRD %s is already present. Skipping.", crdName)
+				continue
+			}
+			return errors.Wrapf(err, "failed to instal CRD %s", obj.Name)
+		}
+		totalItems = append(totalItems, res...)
+	}
+	// Invalidate the local cache, since it will not have the new CRDs
+	// present.
+	discoveryClient, err := i.cfg.RESTClientGetter.ToDiscoveryClient()
+	if err != nil {
+		return err
+	}
+	i.cfg.Log("Clearing discovery cache")
+	discoveryClient.Invalidate()
+	// Give time for the CRD to be recognized.
+	if err := i.cfg.KubeClient.Wait(totalItems, 60*time.Second); err != nil {
+		return err
+	}
+	// Make sure to force a rebuild of the cache.
+	discoveryClient.ServerGroups()
+	return nil
+}
+
 // Run executes the installation
 //
 // If DryRun is set to true, this will prepare the release, but not install it
 func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.Release, error) {
+	if err := i.cfg.KubeClient.IsReachable(); err != nil {
+		return nil, err
+	}
+
 	if err := i.availableName(); err != nil {
 		return nil, err
+	}
+
+	// Pre-install anything in the crd/ directory. We do this before Helm
+	// contacts the upstream server and builds the capabilities object.
+	if crds := chrt.CRDs(); !i.ClientOnly && !i.SkipCRDs && len(crds) > 0 {
+		// On dry run, bail here
+		if i.DryRun {
+			i.cfg.Log("WARNING: This chart or one of its subcharts contains CRDs. Rendering may fail or contain inaccuracies.")
+		} else if err := i.installCRDs(crds); err != nil {
+			return nil, err
+		}
 	}
 
 	if i.ClientOnly {
@@ -502,6 +559,7 @@ func (i *Install) NameAndChart(args []string) (string, string, error) {
 	return fmt.Sprintf("%s-%d", base, time.Now().Unix()), args[0], nil
 }
 
+// TemplateName renders a name template, returning the name or an error.
 func TemplateName(nameTemplate string) (string, error) {
 	if nameTemplate == "" {
 		return "", nil
@@ -519,6 +577,7 @@ func TemplateName(nameTemplate string) (string, error) {
 	return b.String(), nil
 }
 
+// CheckDependencies checks the dependencies for a chart.
 func CheckDependencies(ch *chart.Chart, reqs []*chart.Dependency) error {
 	var missing []string
 
@@ -547,8 +606,8 @@ OUTER:
 // - if path is absolute or begins with '.', error out here
 // - URL
 //
-// If 'verify' is true, this will attempt to also verify the chart.
-func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (string, error) {
+// If 'verify' was set on ChartPathOptions, this will attempt to also verify the chart.
+func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (string, error) {
 	name = strings.TrimSpace(name)
 	version := strings.TrimSpace(c.Version)
 
@@ -575,6 +634,8 @@ func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (s
 		Options: []getter.Option{
 			getter.WithBasicAuth(c.Username, c.Password),
 		},
+		RepositoryConfig: settings.RepositoryConfig,
+		RepositoryCache:  settings.RepositoryCache,
 	}
 	if c.Verify {
 		dl.Verify = downloader.VerifyAlways
@@ -588,11 +649,11 @@ func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (s
 		name = chartURL
 	}
 
-	if _, err := os.Stat(helmpath.Archive()); os.IsNotExist(err) {
-		os.MkdirAll(helmpath.Archive(), 0744)
+	if err := os.MkdirAll(settings.RepositoryCache, 0755); err != nil {
+		return "", err
 	}
 
-	filename, _, err := dl.DownloadTo(name, version, helmpath.Archive())
+	filename, _, err := dl.DownloadTo(name, version, settings.RepositoryCache)
 	if err == nil {
 		lname, err := filepath.Abs(filename)
 		if err != nil {

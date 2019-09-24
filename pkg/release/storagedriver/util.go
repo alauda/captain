@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/klog"
 
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"helm.sh/helm/pkg/chart"
@@ -131,6 +132,7 @@ func decodeRelease(rel *v1alpha1.Release) (*rspb.Release, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(b, &hooks); err != nil {
+		klog.Errorf("decode hooks data error: %s", string(b))
 		return nil, err
 	}
 	rls.Hooks = hooks

@@ -163,6 +163,7 @@ type Info struct {
 	CPUCfsQuota        bool `json:"CpuCfsQuota"`
 	CPUShares          bool
 	CPUSet             bool
+	PidsLimit          bool
 	IPv4Forwarding     bool
 	BridgeNfIptables   bool
 	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
@@ -176,6 +177,7 @@ type Info struct {
 	NEventsListener    int
 	KernelVersion      string
 	OperatingSystem    string
+	OSVersion          string
 	OSType             string
 	Architecture       string
 	IndexServerAddress string

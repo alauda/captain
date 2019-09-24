@@ -24,6 +24,7 @@ github.com/Microsoft/hcsshim/internal/hns
 github.com/Microsoft/hcsshim/internal/mergemaps
 github.com/Microsoft/hcsshim/internal/schema1
 github.com/Microsoft/hcsshim/internal/wclayer
+github.com/Microsoft/hcsshim/osversion
 github.com/Microsoft/hcsshim/internal/guestrequest
 github.com/Microsoft/hcsshim/internal/interop
 github.com/Microsoft/hcsshim/internal/logfields
@@ -54,7 +55,7 @@ github.com/alauda/helm-crds/pkg/client/informers/externalversions/app/v1alpha1
 github.com/asaskevich/govalidator
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
 github.com/beorn7/perks/quantile
-# github.com/containerd/containerd v1.2.7
+# github.com/containerd/containerd v1.3.0-beta.2.0.20190823190603-4a2f61c4f2b4
 github.com/containerd/containerd/content
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/remotes
@@ -63,21 +64,18 @@ github.com/containerd/containerd/log
 github.com/containerd/containerd/platforms
 github.com/containerd/containerd/remotes/docker
 github.com/containerd/containerd/content/local
+github.com/containerd/containerd/labels
 github.com/containerd/containerd/reference
+github.com/containerd/containerd/remotes/docker/schema1
 github.com/containerd/containerd/version
 github.com/containerd/containerd/filters
 github.com/containerd/containerd/sys
+github.com/containerd/containerd/archive/compression
 # github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
-github.com/containerd/continuity
-github.com/containerd/continuity/devices
-github.com/containerd/continuity/driver
 github.com/containerd/continuity/pathdriver
-github.com/containerd/continuity/proto
-github.com/containerd/continuity/sysx
-github.com/containerd/continuity/syscallx
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/deislabs/oras v0.5.0 => github.com/deislabs/oras v0.6.0
+# github.com/deislabs/oras v0.5.0 => github.com/deislabs/oras v0.7.0
 github.com/deislabs/oras/pkg/auth
 github.com/deislabs/oras/pkg/auth/docker
 github.com/deislabs/oras/pkg/content
@@ -88,9 +86,9 @@ github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
 github.com/docker/cli/cli/config/credentials
 github.com/docker/cli/cli/config/types
-# github.com/docker/distribution v2.7.1+incompatible
-github.com/docker/distribution/reference
+# github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
 github.com/docker/distribution/registry/api/errcode
+github.com/docker/distribution/reference
 github.com/docker/distribution/registry/client/auth
 github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
@@ -101,7 +99,7 @@ github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/metrics
-# github.com/docker/docker v1.14.0-0.20190131205458-8a43b7bb99cd
+# github.com/docker/docker v0.0.0-00010101000000-000000000000 => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 github.com/docker/docker/api/types
 github.com/docker/docker/registry
 github.com/docker/docker/pkg/homedir
@@ -331,6 +329,7 @@ golang.org/x/net/internal/socks
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
+golang.org/x/sync/semaphore
 golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20190613124609-5ed2794edfdc
 golang.org/x/sys/unix
@@ -375,7 +374,7 @@ gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-alpha.1.0.20190829021852-0235ba407f6d+incompatible
+# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-alpha.1.0.20190923102049-fc6233ce9c16+incompatible
 helm.sh/helm/pkg/action
 helm.sh/helm/pkg/repo
 helm.sh/helm/pkg/chart
@@ -455,13 +454,13 @@ k8s.io/apiextensions-apiserver/pkg/features
 k8s.io/apimachinery/pkg/util/wait
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/apis/meta/v1
+k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/runtime
-k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/util/sets

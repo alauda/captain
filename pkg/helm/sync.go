@@ -23,9 +23,8 @@ func Sync(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.Info)
 	out := os.Stdout
 
 	// helm settings
-	settings := cli.EnvSettings{
-		Debug: true,
-	}
+	settings := cli.New()
+	settings.Debug = true
 
 	// init upgrade client
 	cfg, err := newActionConfig(info)

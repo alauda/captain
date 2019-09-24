@@ -10,28 +10,28 @@ replace k8s.io/apiserver => k8s.io/apiserver v0.0.0-20190606205144-71ebb8303503
 
 replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.2.0-beta.3
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-alpha.1.0.20190829021852-0235ba407f6d+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-alpha.1.0.20190923102049-fc6233ce9c16+incompatible
 
 replace github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
 
 replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190606210616-f848dc7be4a4
 
-replace github.com/deislabs/oras => github.com/deislabs/oras v0.6.0
+replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
 replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20190915014518-6c1be05f7d6e
+
+replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 
 require (
 	github.com/Jeffail/gabs/v2 v2.1.0
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/sprig v2.18.0+incompatible // indirect
-	github.com/Microsoft/hcsshim v0.8.6 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446
 	github.com/alauda/helm-crds v0.0.0-20190904040405-5d13ef317cd8
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/bugsnag/bugsnag-go v1.5.2 // indirect
-	github.com/containerd/containerd v1.2.7 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190612170431-362f06ec6bc1 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -71,7 +71,6 @@ require (
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/russross/blackfriday v2.0.0+incompatible // indirect
-	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/cobra v0.0.5 // indirect
 	github.com/thoas/go-funk v0.4.0
