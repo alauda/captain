@@ -14,26 +14,10 @@
    limitations under the License.
 */
 
-package driver
+package images
 
-import (
-	"os"
-
-	"golang.org/x/sys/unix"
+const (
+	// AnnotationImageName is an annotation on a Descriptor in an index.json
+	// containing the `Name` value as used by an `Image` struct
+	AnnotationImageName = "io.containerd.image.name"
 )
-
-// Lchmod changes the mode of a file not following symlinks.
-func (d *driver) Lchmod(path string, mode os.FileMode) error {
-	// On Linux, file mode is not supported for symlinks,
-	// and fchmodat() does not support AT_SYMLINK_NOFOLLOW,
-	// so symlinks need to be skipped entirely.
-	if st, err := os.Stat(path); err == nil && st.Mode()&os.ModeSymlink != 0 {
-		return nil
-	}
-
-	err := unix.Fchmodat(unix.AT_FDCWD, path, uint32(mode), 0)
-	if err != nil {
-		err = &os.PathError{Op: "lchmod", Path: path, Err: err}
-	}
-	return err
-}

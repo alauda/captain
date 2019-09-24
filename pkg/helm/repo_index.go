@@ -3,8 +3,6 @@ package helm
 import (
 	"time"
 
-	"helm.sh/helm/pkg/helmpath"
-
 	"helm.sh/helm/pkg/repo"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
@@ -44,7 +42,7 @@ func (i *IndexSyncer) Start(stop <-chan struct{}) error {
 
 // initReposIndex update index for all the known repos. This happens when captain starts.
 func initReposIndex() error {
-	f, err := repo.LoadFile(helmpath.RepositoryFile())
+	f, err := repo.LoadFile(helmRepositoryFile())
 	if err != nil {
 		return err
 	}

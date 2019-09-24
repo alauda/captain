@@ -22,14 +22,14 @@ func RemoveRepository(name string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	f, err := repo.LoadFile(helmpath.RepositoryFile())
+	f, err := repo.LoadFile(helmRepositoryFile())
 	if err != nil {
 		return err
 	}
 
 	found := f.Remove(name)
 	if found {
-		return f.WriteFile(helmpath.RepositoryFile(), 0644)
+		return f.WriteFile(helmRepositoryFile(), 0644)
 	}
 
 	return nil
@@ -40,7 +40,7 @@ func addRepository(name, url, username, password string, certFile, keyFile, caFi
 	lock.Lock()
 	defer lock.Unlock()
 
-	f, err := repo.LoadFile(helmpath.RepositoryFile())
+	f, err := repo.LoadFile(helmRepositoryFile())
 	if err != nil {
 		return err
 	}
@@ -59,20 +59,19 @@ func addRepository(name, url, username, password string, certFile, keyFile, caFi
 		CAFile:   caFile,
 	}
 
-	settings := cli.EnvSettings{
-		Debug: true,
-	}
+	settings := cli.New()
+	settings.Debug = true
 
 	r, err := repo.NewChartRepository(&c, getter.All(settings))
 	if err != nil {
 		return err
 	}
 
-	if err := r.DownloadIndexFile(); err != nil {
+	if _,  err := r.DownloadIndexFile(); err != nil {
 		return errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", url)
 	}
 
 	f.Update(&c)
 
-	return f.WriteFile(helmpath.RepositoryFile(), 0644)
+	return f.WriteFile(helmpath.ConfigPath("repositories.yaml"), 0644)
 }

@@ -28,9 +28,8 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.In
 	// This is used for crd-install webhook, or it will wait forever
 	client.Timeout = 180 * time.Second
 	out := os.Stdout
-	settings := cli.EnvSettings{
-		Debug: true,
-	}
+	settings := cli.New()
+	settings.Debug = true
 
 	args := []string{
 		hr.GetName(),

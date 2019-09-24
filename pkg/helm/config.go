@@ -26,13 +26,13 @@ import (
 // 2. update repo index
 // we will mount the repo file from a ConfigMap by default, so this function will do the index update
 func Init() {
-	path := helmpath.RepositoryFile()
+	path := helmpath.ConfigPath("repositories.yaml")
 	err := system.CreatePathIfNotExist(path)
 	if err != nil {
 		panic(err)
 	}
 
-	path = helmpath.RepositoryCache() + "/"
+	path = helmpath.CachePath("repository") + "/"
 	if err := system.CreatePathIfNotExist(path); err != nil {
 		panic(err)
 	}
@@ -105,3 +105,5 @@ func newActionConfig(info *cluster.Info) (*action.Configuration, error) {
 		Log:              klog.Infof,
 	}, nil
 }
+
+

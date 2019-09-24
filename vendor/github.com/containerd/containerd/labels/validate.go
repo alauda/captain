@@ -14,14 +14,24 @@
    limitations under the License.
 */
 
-package devices
+package labels
 
 import (
-	"os"
-
+	"github.com/containerd/containerd/errdefs"
 	"github.com/pkg/errors"
 )
 
-func DeviceInfo(fi os.FileInfo) (uint64, uint64, error) {
-	return 0, 0, errors.Wrap(ErrNotSupported, "cannot get device info on windows")
+const (
+	maxSize = 4096
+)
+
+// Validate a label's key and value are under 4096 bytes
+func Validate(k, v string) error {
+	if (len(k) + len(v)) > maxSize {
+		if len(k) > 10 {
+			k = k[:10]
+		}
+		return errors.Wrapf(errdefs.ErrInvalidArgument, "label key and value greater than maximum size (%d bytes), key: %s", maxSize, k)
+	}
+	return nil
 }
