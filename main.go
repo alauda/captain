@@ -91,11 +91,13 @@ func main() {
 	}
 
 	// install default chartrepo
-	if err := chartrepo.InstallDefaultChartRepo(cfg, options.ChartRepoNamespace); err != nil {
-		klog.Fatal("error install default helm repo:", err)
-	}
+	if options.InstallStableRepo {
+		if err := chartrepo.InstallDefaultChartRepo(cfg, options.ChartRepoNamespace); err != nil {
+			klog.Fatal("error install default helm repo:", err)
+		}
+		klog.Info("create default chart repo")
 
-	klog.Info("create default chart repo")
+	}
 
 	// create controller
 	_, err = controller.NewController(mgr, &options, stopCh)

@@ -67,7 +67,7 @@ func addRepository(name, url, username, password string, certFile, keyFile, caFi
 		return err
 	}
 
-	if _,  err := r.DownloadIndexFile(); err != nil {
+	if _, err := r.DownloadIndexFile(); err != nil {
 		return errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", url)
 	}
 

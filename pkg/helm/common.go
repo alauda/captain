@@ -22,7 +22,6 @@ func getReleaseName(hr *v1alpha1.HelmRequest) string {
 	return name
 }
 
-
 func helmRepositoryFile() string {
 	return helmpath.ConfigPath("repositories.yaml")
 }
