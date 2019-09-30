@@ -105,5 +105,3 @@ func newActionConfig(info *cluster.Info) (*action.Configuration, error) {
 		Log:              klog.Infof,
 	}, nil
 }
-
-

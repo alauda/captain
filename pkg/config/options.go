@@ -25,6 +25,9 @@ type Options struct {
 	// ChartRepoNamespace is the namespace where all the ChartRepo resources lives in
 	ChartRepoNamespace string
 
+	// 	InstallStableRepo install the default glob al stable repo
+	InstallStableRepo bool
+
 	// EnableValidateWebhook decide if we should enable the validating webhook
 	// mainly used for local test
 	EnableValidateWebhook bool
@@ -70,6 +73,8 @@ func (opt *Options) BindFlags() {
 		"Enable leader election")
 	flag.BoolVar(&opt.EnableValidateWebhook, "enable-validating-webhook", true,
 		"Enable validating webhook")
+	flag.BoolVar(&opt.InstallStableRepo, "install-stable-repo", true,
+		"Install helm stable repo")
 
 	flag.StringVar(&opt.MetricsBindAddress, "metrics-bind-address", ":6060",
 		"Setup bind address for metrics server, use \"\" to disable it")
