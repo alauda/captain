@@ -34,11 +34,11 @@ const (
 
 // sendFailedDeleteEvent send a failed event when delete error
 func (c *Controller) sendFailedDeleteEvent(hr *v1alpha1.HelmRequest, err error) {
-	c.recorder.Event(hr, corev1.EventTypeWarning, FailedDelete,
+	c.getEventRecorder(hr).Event(hr, corev1.EventTypeWarning, FailedDelete,
 		fmt.Sprintf("Delete HelmRequest %s error : %s", hr.GetName(), err.Error()))
 }
 
 // sendFailedSyncEvent send a event when failed to sync a resource
 func (c *Controller) sendFailedSyncEvent(hr *v1alpha1.HelmRequest, err error) {
-	c.recorder.Event(hr, corev1.EventTypeWarning, FailedSync, err.Error())
+	c.getEventRecorder(hr).Event(hr, corev1.EventTypeWarning, FailedSync, err.Error())
 }
