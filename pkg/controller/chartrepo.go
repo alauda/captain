@@ -102,14 +102,16 @@ func (c *Controller) syncChartRepo(obj interface{}) {
 }
 
 // createCharts create charts resource for a repo
+// TODO: ace.ACE
 func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 	checked := map[string]bool{}
 	index, err := helm.GetChartsForRepo(cr.GetName())
 	if err != nil {
 		return err
 	}
+	// this may causes bugs
 	for name, _ := range index.Entries {
-		checked[name] = true
+		checked[strings.ToLower(name)] = true
 	}
 
 	existCharts := map[string]v1alpha1.Chart{}
@@ -125,11 +127,12 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 		existCharts[name] = item
 	}
 
-	for name, versions := range index.Entries {
+	for on, versions := range index.Entries {
+		name := strings.ToLower(on)
 		chart := generateChartResource(versions, name, cr)
 		// chart name can be uppercase in helm
-		if _, ok := existCharts[strings.ToLower(name)]; !ok {
-			klog.Infof("chart %s/%s not found, create", cr.GetName(), name)
+		if _, ok := existCharts[name]; !ok {
+			klog.Infof("chart %s/%s not found, create", cr.GetName(), on)
 			_, err = c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Create(chart)
 			if err != nil {
 				if !apierrors.IsAlreadyExists(err) {
