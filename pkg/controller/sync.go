@@ -88,29 +88,8 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 
 	// record chart version for un-specified ones
 	msg := fmt.Sprintf("Choose chart version: %s %s", rel.Chart.Metadata.Name, rel.Chart.Metadata.Version)
-	c.recorder.Event(helmRequest, corev1.EventTypeNormal, SuccessSynced, msg)
+	c.getEventRecorder(helmRequest).Event(helmRequest, corev1.EventTypeNormal, SuccessSynced, msg)
 
 	action.PrintRelease(os.Stdout, rel)
 	return nil
-}
-
-// syncToCluster install/update HelmRequest to one cluster
-func (c *Controller) syncToCluster(helmRequest *v1alpha1.HelmRequest) error {
-	clusterName := helmRequest.Spec.ClusterName
-	info, err := c.getClusterInfo(clusterName)
-	if err != nil {
-		klog.Errorf("get cluster info error: %s", err.Error())
-		return err
-	}
-
-	klog.Infof("get cluster %s  endpoint: %s", info.Name, info.Endpoint)
-
-	if err := c.sync(info, helmRequest); err != nil {
-		return err
-	}
-
-	// Finally, we update the status block of the HelmRequest resource to reflect the
-	// current state of the world
-	err = c.updateHelmRequestStatus(helmRequest)
-	return err
 }

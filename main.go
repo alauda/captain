@@ -17,12 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"time"
-
 	"github.com/alauda/captain/pkg/chartrepo"
+	"github.com/alauda/captain/pkg/util"
 
 	"github.com/alauda/captain/pkg/webhook"
 
@@ -31,10 +29,6 @@ import (
 	"github.com/alauda/captain/pkg/config"
 	"github.com/alauda/captain/pkg/controller"
 	"github.com/alauda/captain/pkg/helm"
-	"github.com/alauda/captain/pkg/helmrequest"
-
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -86,7 +80,7 @@ func main() {
 	// }
 
 	// install HelmRequest CRD
-	if err := installCRDIfRequired(cfg, options.InstallCRD); err != nil {
+	if err := util.InstallCRDIfRequired(cfg, options.InstallCRD); err != nil {
 		klog.Fatalf("Error install CRD: %s", err.Error())
 	}
 
@@ -118,13 +112,3 @@ func main() {
 	}
 }
 
-// installCRDIfRequired install helmrequest CRD
-// may be we should move it out of main
-func installCRDIfRequired(cfg *rest.Config, required bool) error {
-	if required {
-		return wait.PollImmediateUntil(time.Second*5, func() (bool, error) {
-			return helmrequest.EnsureCRDCreated(cfg)
-		}, context.TODO().Done())
-	}
-	return nil
-}

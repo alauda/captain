@@ -46,6 +46,7 @@ func mergeValues(dest, src Values) Values {
 	return dest
 }
 
+// getValues merges all values settings from spec/configmap/secret...
 func getValues(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, error) {
 	values, err := getValuesFromSource(hr, cfg)
 	if err != nil {
