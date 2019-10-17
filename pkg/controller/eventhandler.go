@@ -17,7 +17,7 @@ func (c *Controller) newChartRepoHandler() cache.ResourceEventHandler {
 	updateFunc := func(old, new interface{}) {
 		// oldChartRepo := old.(*alpha1.ChartRepo)
 		// newChartRepo := new.(*alpha1.ChartRepo)
-		klog.V(2).Info("receive new chartrepo")
+		klog.V(4).Info("receive new chartrepo")
 
 		// TODO: use a queue
 		//go c.syncChartRepo(new)
