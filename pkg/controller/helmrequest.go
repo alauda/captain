@@ -7,7 +7,7 @@ import (
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
-	"github.com/thoas/go-funk"
+	funk "github.com/thoas/go-funk"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -95,13 +95,7 @@ func (c *Controller) syncHandler(key string) error {
 
 // syncToCluster install/update HelmRequest to one cluster
 func (c *Controller) syncToCluster(helmRequest *v1alpha1.HelmRequest) error {
-	clusterName := helmRequest.Spec.ClusterName
-
-	// TODO: merge
-	if helmRequest.ClusterName != "" {
-		clusterName = helmRequest.ClusterName
-	}
-
+	clusterName := c.getDeployCluster(helmRequest)
 	info, err := c.getClusterInfo(clusterName)
 	if err != nil {
 		klog.Errorf("get cluster info error: %s", err.Error())
@@ -168,7 +162,7 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 		clusters = result
 	} else {
 		// no longer use .spec.ClusterName
-		info, err := c.getClusterInfo(hr.ClusterName)
+		info, err := c.getClusterInfo(c.getDeployCluster(hr))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				klog.Warning("cluster not found when delete helmrequest, ignore it")

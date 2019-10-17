@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+
 	"github.com/alauda/captain/pkg/chartrepo"
 	"github.com/alauda/captain/pkg/util"
 
@@ -111,4 +112,3 @@ func main() {
 		klog.Fatalf("Error running controller: %s", err.Error())
 	}
 }
-

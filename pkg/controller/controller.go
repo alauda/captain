@@ -443,3 +443,12 @@ func (c *Controller) getEventRecorder(hr *alpha1.HelmRequest) record.EventRecord
 		return c.clusterRecorders[hr.ClusterName]
 	}
 }
+
+// getDeployCluster returns the cluster name which the target Release lives in
+func (c *Controller) getDeployCluster(hr *alpha1.HelmRequest) string {
+	if hr.Spec.ClusterName != "" {
+		return hr.Spec.ClusterName
+	} else {
+		return hr.ClusterName
+	}
+}
