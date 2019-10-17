@@ -22,6 +22,8 @@ replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-201909
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 
+replace gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.0.1
+
 require (
 	github.com/Jeffail/gabs/v2 v2.1.0
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
