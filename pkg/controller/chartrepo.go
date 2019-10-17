@@ -127,8 +127,8 @@ func (c *Controller) createCharts(cr *v1alpha1.ChartRepo) error {
 
 	for name, versions := range index.Entries {
 		chart := generateChartResource(versions, name, cr)
-
-		if _, ok := existCharts[name]; !ok {
+		// chart name can be uppercase in helm
+		if _, ok := existCharts[strings.ToLower(name)]; !ok {
 			klog.Infof("chart %s/%s not found, create", cr.GetName(), name)
 			_, err = c.appClientSet.AppV1alpha1().Charts(cr.GetNamespace()).Create(chart)
 			if err != nil {
