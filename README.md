@@ -6,19 +6,18 @@ Captain is a Helm 3 Controller
 
 ## About Helm3 
 
-The [Helm 3 Design Proposal](https://github.com/helm/community/blob/master/helm-v3/000-helm-v3.md) has been exist for a while, and the helm 
-developer group is focused on the core helm 3 development, this is the first implementation of Helm3 Controller based on the Proposal.
+The [Helm 3 Design Proposal](https://github.com/helm/community/blob/master/helm-v3/000-helm-v3.md) exists for a while and currently it is still under heavy development. Captain comes as the first implementation of Helm v3 Controller based on the Proposal.
 
-This project is based on the core [helm](https://github.com/helm/helm) v3 code, which promised to be act as an library. Since it's not official 
-released yet (alpha stage for now), we add some little modification to help create this controller([alauda/helm](https://github.com/alauda/helm),  of course this will be unnecessary in the future.).
+This project is based on the core [helm](https://github.com/helm/helm) v3 code, acting as a library. Since it's not officially 
+released yet (alpha stage for now), some modifications were made to help implement this controller on a fork: [alauda/helm](https://github.com/alauda/helm) (will be deprecated once Helm's library is released).
 
 ## Features
 * HelmRequest and Release CRD, namespace based
 * ChartRepo CRD
 * Multi cluster support based on [https://github.com/kubernetes/cluster-registry](https://github.com/kubernetes/cluster-registry)
 * Dependency check for HelmRequest (between HelmRequests)
-* `valuesFrom` support, also use ConfigMap or Secret to store values
-* `kubectl apply` like resource manipulation，no more resource conflict and CRD management issues
+* `valuesFrom` support: support to ConfigMap or Secret value store
+* `kubectl apply` like resource manipulation: no more resource conflict and CRD management issues
 
 
 ## Quick Start
@@ -34,7 +33,7 @@ metadata:
 spec:
   chart: stable/nginx-ingress
 ```
-After a few seconds, you have a nginx-ingress chart running
+After a few seconds, you have an nginx-ingress chart running
 
 ```bash
 root@VM-16-12-ubuntu:~/demo# kubectl get pods
@@ -60,7 +59,6 @@ For the detailed explain and advanced usage, please check the documentation belo
 
 
 
-
 ## Future Plans
 
 * Release Version secret support
@@ -72,6 +70,5 @@ For the detailed explain and advanced usage, please check the documentation belo
 ## Related Project
 
 * [flux](https://github.com/fluxcd/flux): flux have a similar controller based on Helm2
-
 
 
