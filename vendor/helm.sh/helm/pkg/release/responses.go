@@ -15,26 +15,10 @@ limitations under the License.
 
 package release
 
-// GetReleaseStatusResponse is the response indicating the status of the named release.
-type GetReleaseStatusResponse struct {
-	// Name is the name of the release.
-	Name string `json:"name,omitempty"`
-	// Info contains information about the release.
-	Info *Info `json:"info,omitempty"`
-	// Namespace the release was released into
-	Namespace string `json:"namespace,omitempty"`
-}
-
 // UninstallReleaseResponse represents a successful response to an uninstall request.
 type UninstallReleaseResponse struct {
 	// Release is the release that was marked deleted.
 	Release *Release `json:"release,omitempty"`
 	// Info is an uninstall message
 	Info string `json:"info,omitempty"`
-}
-
-// TestReleaseResponse represents a message from executing a test
-type TestReleaseResponse struct {
-	Msg    string        `json:"msg,omitempty"`
-	Status TestRunStatus `json:"status,omitempty"`
 }

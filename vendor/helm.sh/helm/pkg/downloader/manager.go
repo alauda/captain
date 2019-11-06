@@ -27,17 +27,17 @@ import (
 	"sync"
 
 	"github.com/Masterminds/semver"
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 
+	"helm.sh/helm/internal/resolver"
+	"helm.sh/helm/internal/urlutil"
 	"helm.sh/helm/pkg/chart"
 	"helm.sh/helm/pkg/chart/loader"
 	"helm.sh/helm/pkg/chartutil"
 	"helm.sh/helm/pkg/getter"
 	"helm.sh/helm/pkg/helmpath"
 	"helm.sh/helm/pkg/repo"
-	"helm.sh/helm/pkg/resolver"
-	"helm.sh/helm/pkg/urlutil"
 )
 
 // Manager handles the lifecycle of fetching, resolving, and storing dependencies.
@@ -46,8 +46,6 @@ type Manager struct {
 	Out io.Writer
 	// ChartPath is the path to the unpacked base chart upon which this operates.
 	ChartPath string
-	// HelmHome is the $HELM_HOME directory
-	HelmHome helmpath.Home
 	// Verification indicates whether the chart should be verified.
 	Verify VerificationStrategy
 	// Debug is the global "--debug" flag
@@ -57,7 +55,9 @@ type Manager struct {
 	// SkipUpdate indicates that the repository should not be updated first.
 	SkipUpdate bool
 	// Getter collection for the operation
-	Getters []getter.Provider
+	Getters          []getter.Provider
+	RepositoryConfig string
+	RepositoryCache  string
 }
 
 // Build rebuilds a local charts directory from a lockfile.
@@ -96,11 +96,7 @@ func (m *Manager) Build() error {
 	}
 
 	// Now we need to fetch every package here into charts/
-	if err := m.downloadAll(lock.Dependencies); err != nil {
-		return err
-	}
-
-	return nil
+	return m.downloadAll(lock.Dependencies)
 }
 
 // Update updates a local charts directory.
@@ -121,13 +117,6 @@ func (m *Manager) Update() error {
 		return nil
 	}
 
-	// Hash dependencies
-	// FIXME should this hash all of Chart.yaml
-	hash, err := resolver.HashReq(req)
-	if err != nil {
-		return err
-	}
-
 	// Check that all of the repos we're dependent on actually exist and
 	// the repo index names.
 	repoNames, err := m.getRepoNames(req)
@@ -144,7 +133,7 @@ func (m *Manager) Update() error {
 
 	// Now we need to find out which version of a chart best satisfies the
 	// dependencies in the Chart.yaml
-	lock, err := m.resolve(req, repoNames, hash)
+	lock, err := m.resolve(req, repoNames)
 	if err != nil {
 		return err
 	}
@@ -176,9 +165,9 @@ func (m *Manager) loadChartDir() (*chart.Chart, error) {
 // resolve takes a list of dependencies and translates them into an exact version to download.
 //
 // This returns a lock file, which has all of the dependencies normalized to a specific version.
-func (m *Manager) resolve(req []*chart.Dependency, repoNames map[string]string, hash string) (*chart.Lock, error) {
-	res := resolver.New(m.ChartPath, m.HelmHome)
-	return res.Resolve(req, repoNames, hash)
+func (m *Manager) resolve(req []*chart.Dependency, repoNames map[string]string) (*chart.Lock, error) {
+	res := resolver.New(m.ChartPath, m.RepositoryCache)
+	return res.Resolve(req, repoNames)
 }
 
 // downloadAll takes a list of dependencies and downloads them into charts/
@@ -238,13 +227,15 @@ func (m *Manager) downloadAll(deps []*chart.Dependency) error {
 		}
 
 		dl := ChartDownloader{
-			Out:      m.Out,
-			Verify:   m.Verify,
-			Keyring:  m.Keyring,
-			HelmHome: m.HelmHome,
-			Getters:  m.Getters,
-			Username: username,
-			Password: password,
+			Out:              m.Out,
+			Verify:           m.Verify,
+			Keyring:          m.Keyring,
+			RepositoryConfig: m.RepositoryConfig,
+			RepositoryCache:  m.RepositoryCache,
+			Getters:          m.Getters,
+			Options: []getter.Option{
+				getter.WithBasicAuth(username, password),
+			},
 		}
 
 		if _, _, err := dl.DownloadTo(churl, "", destPath); err != nil {
@@ -320,7 +311,7 @@ func (m *Manager) safeDeleteDep(name, dir string) error {
 
 // hasAllRepos ensures that all of the referenced deps are in the local repo cache.
 func (m *Manager) hasAllRepos(deps []*chart.Dependency) error {
-	rf, err := repo.LoadFile(m.HelmHome.RepositoryFile())
+	rf, err := loadRepoConfig(m.RepositoryConfig)
 	if err != nil {
 		return err
 	}
@@ -354,8 +345,11 @@ Loop:
 
 // getRepoNames returns the repo names of the referenced deps which can be used to fetch the cahced index file.
 func (m *Manager) getRepoNames(deps []*chart.Dependency) (map[string]string, error) {
-	rf, err := repo.LoadFile(m.HelmHome.RepositoryFile())
+	rf, err := loadRepoConfig(m.RepositoryConfig)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return make(map[string]string), nil
+		}
 		return nil, err
 	}
 	repos := rf.Repositories
@@ -410,9 +404,9 @@ func (m *Manager) getRepoNames(deps []*chart.Dependency) (map[string]string, err
 		}
 		if containsNonURL {
 			errorMessage += `
-Note that repositories must be URLs or aliases. For example, to refer to the stable
-repository, use "https://kubernetes-charts.storage.googleapis.com/" or "@stable" instead of
-"stable". Don't forget to add the repo, too ('helm repo add').`
+Note that repositories must be URLs or aliases. For example, to refer to the "example"
+repository, use "https://charts.example.com/" or "@example" instead of
+"example". Don't forget to add the repo, too ('helm repo add').`
 		}
 		return nil, errors.New(errorMessage)
 	}
@@ -421,7 +415,7 @@ repository, use "https://kubernetes-charts.storage.googleapis.com/" or "@stable"
 
 // UpdateRepositories updates all of the local repos to the latest.
 func (m *Manager) UpdateRepositories() error {
-	rf, err := repo.LoadFile(m.HelmHome.RepositoryFile())
+	rf, err := loadRepoConfig(m.RepositoryConfig)
 	if err != nil {
 		return err
 	}
@@ -436,8 +430,7 @@ func (m *Manager) UpdateRepositories() error {
 }
 
 func (m *Manager) parallelRepoUpdate(repos []*repo.Entry) error {
-	out := m.Out
-	fmt.Fprintln(out, "Hang tight while we grab the latest from your chart repositories...")
+	fmt.Fprintln(m.Out, "Hang tight while we grab the latest from your chart repositories...")
 	var wg sync.WaitGroup
 	for _, c := range repos {
 		r, err := repo.NewChartRepository(c, m.Getters)
@@ -446,16 +439,16 @@ func (m *Manager) parallelRepoUpdate(repos []*repo.Entry) error {
 		}
 		wg.Add(1)
 		go func(r *repo.ChartRepository) {
-			if err := r.DownloadIndexFile(m.HelmHome.Cache()); err != nil {
-				fmt.Fprintf(out, "...Unable to get an update from the %q chart repository (%s):\n\t%s\n", r.Config.Name, r.Config.URL, err)
+			if _, err := r.DownloadIndexFile(); err != nil {
+				fmt.Fprintf(m.Out, "...Unable to get an update from the %q chart repository (%s):\n\t%s\n", r.Config.Name, r.Config.URL, err)
 			} else {
-				fmt.Fprintf(out, "...Successfully got an update from the %q chart repository\n", r.Config.Name)
+				fmt.Fprintf(m.Out, "...Successfully got an update from the %q chart repository\n", r.Config.Name)
 			}
 			wg.Done()
 		}(r)
 	}
 	wg.Wait()
-	fmt.Fprintln(out, "Update Complete. ⎈Happy Helming!⎈")
+	fmt.Fprintln(m.Out, "Update Complete. ⎈Happy Helming!⎈")
 	return nil
 }
 
@@ -558,18 +551,17 @@ func normalizeURL(baseURL, urlOrPath string) (string, error) {
 // The key is the local name (which is only present in the repositories.yaml).
 func (m *Manager) loadChartRepositories() (map[string]*repo.ChartRepository, error) {
 	indices := map[string]*repo.ChartRepository{}
-	repoyaml := m.HelmHome.RepositoryFile()
 
 	// Load repositories.yaml file
-	rf, err := repo.LoadFile(repoyaml)
+	rf, err := loadRepoConfig(m.RepositoryConfig)
 	if err != nil {
-		return indices, errors.Wrapf(err, "failed to load %s", repoyaml)
+		return indices, errors.Wrapf(err, "failed to load %s", m.RepositoryConfig)
 	}
 
 	for _, re := range rf.Repositories {
 		lname := re.Name
-		cacheindex := m.HelmHome.CacheIndex(lname)
-		index, err := repo.LoadIndexFile(cacheindex)
+		idxFile := filepath.Join(m.RepositoryCache, helmpath.CacheIndexFile(lname))
+		index, err := repo.LoadIndexFile(idxFile)
 		if err != nil {
 			return indices, err
 		}

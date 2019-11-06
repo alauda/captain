@@ -18,8 +18,10 @@ package engine
 
 import (
 	"fmt"
+	"log"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -35,6 +37,8 @@ type Engine struct {
 	// If strict is enabled, template rendering will fail if a template references
 	// a value that was not passed in.
 	Strict bool
+	// In LintMode, some 'required' template values may be missing, so don't fail
+	LintMode bool
 }
 
 // Render takes a chart, optional values, and value overrides, and attempts to render the Go templates.
@@ -77,6 +81,15 @@ type renderable struct {
 	basePath string
 }
 
+const warnStartDelim = "HELM_ERR_START"
+const warnEndDelim = "HELM_ERR_END"
+
+var warnRegex = regexp.MustCompile(warnStartDelim + `(.*)` + warnEndDelim)
+
+func warnWrap(warn string) string {
+	return warnStartDelim + warn + warnEndDelim
+}
+
 // initFunMap creates the Engine's FuncMap and adds context-specific functions.
 func (e Engine) initFunMap(t *template.Template, referenceTpls map[string]renderable) {
 	funcMap := funcMap()
@@ -114,6 +127,29 @@ func (e Engine) initFunMap(t *template.Template, referenceTpls map[string]render
 		}
 		return result[templateName.(string)], nil
 	}
+
+	// Add the `required` function here so we can use lintMode
+	funcMap["required"] = func(warn string, val interface{}) (interface{}, error) {
+		if val == nil {
+			if e.LintMode {
+				// Don't fail on missing required values when linting
+				log.Printf("[INFO] Missing required value: %s", warn)
+				return "", nil
+			}
+			return val, errors.Errorf(warnWrap(warn))
+		} else if _, ok := val.(string); ok {
+			if val == "" {
+				if e.LintMode {
+					// Don't fail on missing required values when linting
+					log.Printf("[INFO] Missing required value: %s", warn)
+					return "", nil
+				}
+				return val, errors.Errorf(warnWrap(warn))
+			}
+		}
+		return val, nil
+	}
+
 	t.Funcs(funcMap)
 }
 
@@ -155,7 +191,7 @@ func (e Engine) renderWithReferences(tpls, referenceTpls map[string]renderable) 
 	for _, filename := range keys {
 		r := tpls[filename]
 		if _, err := t.New(filename).Parse(r.tpl); err != nil {
-			return map[string]string{}, parseTemplateError(filename, err)
+			return map[string]string{}, cleanupParseError(filename, err)
 		}
 	}
 
@@ -164,7 +200,7 @@ func (e Engine) renderWithReferences(tpls, referenceTpls map[string]renderable) 
 	for filename, r := range referenceTpls {
 		if t.Lookup(filename) == nil {
 			if _, err := t.New(filename).Parse(r.tpl); err != nil {
-				return map[string]string{}, parseTemplateError(filename, err)
+				return map[string]string{}, cleanupParseError(filename, err)
 			}
 		}
 	}
@@ -181,34 +217,53 @@ func (e Engine) renderWithReferences(tpls, referenceTpls map[string]renderable) 
 		vals["Template"] = chartutil.Values{"Name": filename, "BasePath": tpls[filename].basePath}
 		var buf strings.Builder
 		if err := t.ExecuteTemplate(&buf, filename, vals); err != nil {
-			return map[string]string{}, parseTemplateError(filename, err)
+			return map[string]string{}, cleanupExecError(filename, err)
 		}
 
 		// Work around the issue where Go will emit "<no value>" even if Options(missing=zero)
 		// is set. Since missing=error will never get here, we do not need to handle
 		// the Strict case.
-		f := &chart.File{
-			Name: strings.ReplaceAll(filename, "/templates", "/manifests"),
-			Data: []byte(strings.ReplaceAll(buf.String(), "<no value>", "")),
-		}
-		rendered[filename] = string(f.Data)
+		rendered[filename] = strings.ReplaceAll(buf.String(), "<no value>", "")
 	}
 
 	return rendered, nil
 }
 
-func parseTemplateError(filename string, err error) error {
+func cleanupParseError(filename string, err error) error {
 	tokens := strings.Split(err.Error(), ": ")
 	if len(tokens) == 1 {
 		// This might happen if a non-templating error occurs
-		return fmt.Errorf("render error in (%s): %s", filename, err)
+		return fmt.Errorf("parse error in (%s): %s", filename, err)
 	}
 	// The first token is "template"
 	// The second token is either "filename:lineno" or "filename:lineNo:columnNo"
 	location := tokens[1]
 	// The remaining tokens make up a stacktrace-like chain, ending with the relevant error
 	errMsg := tokens[len(tokens)-1]
-	return fmt.Errorf("render error at (%s): %s", string(location), errMsg)
+	return fmt.Errorf("parse error at (%s): %s", string(location), errMsg)
+}
+
+func cleanupExecError(filename string, err error) error {
+	if _, isExecError := err.(template.ExecError); !isExecError {
+		return err
+	}
+
+	tokens := strings.SplitN(err.Error(), ": ", 3)
+	if len(tokens) != 3 {
+		// This might happen if a non-templating error occurs
+		return fmt.Errorf("execution error in (%s): %s", filename, err)
+	}
+
+	// The first token is "template"
+	// The second token is either "filename:lineno" or "filename:lineNo:columnNo"
+	location := tokens[1]
+
+	parts := warnRegex.FindStringSubmatch(tokens[2])
+	if len(parts) >= 2 {
+		return fmt.Errorf("execution error at (%s): %s", string(location), parts[1])
+	}
+
+	return err
 }
 
 func sortTemplates(tpls map[string]renderable) []string {

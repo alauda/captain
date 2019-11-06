@@ -36,8 +36,6 @@ import (
 //
 // It provides the implementation of 'helm package'.
 type Package struct {
-	ValueOptions
-
 	Sign             bool
 	Key              string
 	Keyring          string
@@ -45,6 +43,9 @@ type Package struct {
 	AppVersion       string
 	Destination      string
 	DependencyUpdate bool
+
+	RepositoryConfig string
+	RepositoryCache  string
 }
 
 // NewPackage creates a new Package object with the given configuration.
@@ -53,13 +54,13 @@ func NewPackage() *Package {
 }
 
 // Run executes 'helm package' against the given chart and returns the path to the packaged chart.
-func (p *Package) Run(path string) (string, error) {
+func (p *Package) Run(path string, vals map[string]interface{}) (string, error) {
 	ch, err := loader.LoadDir(path)
 	if err != nil {
 		return "", err
 	}
 
-	combinedVals, err := chartutil.CoalesceValues(ch, p.ValueOptions.rawValues)
+	combinedVals, err := chartutil.CoalesceValues(ch, vals)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +134,7 @@ func (p *Package) Clearsign(filename string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(filename+".prov", []byte(sig), 0755)
+	return ioutil.WriteFile(filename+".prov", []byte(sig), 0644)
 }
 
 // promptUser implements provenance.PassphraseFetcher

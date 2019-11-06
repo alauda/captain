@@ -17,16 +17,16 @@ limitations under the License.
 package releaseutil
 
 import (
+	"k8s.io/klog"
 	"log"
 	"path"
 	"strconv"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/pkg/chartutil"
-	"helm.sh/helm/pkg/hooks"
 	"helm.sh/helm/pkg/release"
 )
 
@@ -53,16 +53,19 @@ type result struct {
 // TODO: Refactor this out. It's here because naming conventions were not followed through.
 // So fix the Test hook names and then remove this.
 var events = map[string]release.HookEvent{
-	hooks.PreInstall:         release.HookPreInstall,
-	hooks.PostInstall:        release.HookPostInstall,
-	hooks.PreDelete:          release.HookPreDelete,
-	hooks.PostDelete:         release.HookPostDelete,
-	hooks.PreUpgrade:         release.HookPreUpgrade,
-	hooks.PostUpgrade:        release.HookPostUpgrade,
-	hooks.PreRollback:        release.HookPreRollback,
-	hooks.PostRollback:       release.HookPostRollback,
-	hooks.ReleaseTestSuccess: release.HookReleaseTestSuccess,
-	hooks.ReleaseTestFailure: release.HookReleaseTestFailure,
+	release.HookPreInstall.String():   release.HookPreInstall,
+	release.HookPostInstall.String():  release.HookPostInstall,
+	release.HookPreDelete.String():    release.HookPreDelete,
+	release.HookPostDelete.String():   release.HookPostDelete,
+	release.HookPreUpgrade.String():   release.HookPreUpgrade,
+	release.HookPostUpgrade.String():  release.HookPostUpgrade,
+	release.HookPreRollback.String():  release.HookPreRollback,
+	release.HookPostRollback.String(): release.HookPostRollback,
+	release.HookTest.String():         release.HookTest,
+	// Support test-success for backward compatibility with Helm 2 tests
+	"test-success": release.HookTest,
+	// crd-install hook
+	"crd-install":         release.HookCRDInstall,
 }
 
 // SortManifests takes a map of filename/YAML contents, splits the file
@@ -130,7 +133,8 @@ func (file *manifestFile) sort(result *result) error {
 		}
 
 		if entry.Version != "" && !file.apis.Has(entry.Version) {
-			return errors.Errorf("apiVersion %q in %s is not available", entry.Version, file.path)
+			err := errors.Errorf("apiVersion %q in %s is not available", entry.Version, file.path)
+			klog.Warning("apiVersion not found when parse yaml, may be a crd, skip for now:", err)
 		}
 
 		if !hasAnyAnnotation(entry) {
@@ -142,7 +146,7 @@ func (file *manifestFile) sort(result *result) error {
 			continue
 		}
 
-		hookTypes, ok := entry.Metadata.Annotations[hooks.HookAnno]
+		hookTypes, ok := entry.Metadata.Annotations[release.HookAnnotation]
 		if !ok {
 			result.generic = append(result.generic, Manifest{
 				Name:    file.path,
@@ -182,7 +186,7 @@ func (file *manifestFile) sort(result *result) error {
 
 		result.hooks = append(result.hooks, h)
 
-		operateAnnotationValues(entry, hooks.HookDeleteAnno, func(value string) {
+		operateAnnotationValues(entry, release.HookDeleteAnnotation, func(value string) {
 			h.DeletePolicies = append(h.DeletePolicies, release.HookDeletePolicy(value))
 		})
 	}
@@ -201,7 +205,7 @@ func hasAnyAnnotation(entry SimpleHead) bool {
 //
 // If no weight is found, the assigned weight is 0
 func calculateHookWeight(entry SimpleHead) int {
-	hws := entry.Metadata.Annotations[hooks.HookWeightAnno]
+	hws := entry.Metadata.Annotations[release.HookWeightAnnotation]
 	hw, err := strconv.Atoi(hws)
 	if err != nil {
 		hw = 0

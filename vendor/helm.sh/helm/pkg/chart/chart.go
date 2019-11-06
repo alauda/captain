@@ -15,8 +15,13 @@ limitations under the License.
 
 package chart
 
+import "strings"
+
 // APIVersionV1 is the API version number for version 1.
 const APIVersionV1 = "v1"
+
+// APIVersionV2 is the API version number for version 2.
+const APIVersionV2 = "v2"
 
 // Chart is a helm package that contains metadata, a default config, zero or more
 // optionally parameterizable templates, and zero or more charts (dependencies).
@@ -78,9 +83,6 @@ func (ch *Chart) IsRoot() bool { return ch.parent == nil }
 // Parent returns a subchart's parent chart.
 func (ch *Chart) Parent() *Chart { return ch.parent }
 
-// SetParent sets a subchart's parent chart.
-func (ch *Chart) SetParent(chart *Chart) { ch.parent = chart }
-
 // ChartPath returns the full path to this chart in dot notation.
 func (ch *Chart) ChartPath() string {
 	if !ch.IsRoot() {
@@ -97,6 +99,7 @@ func (ch *Chart) ChartFullPath() string {
 	return ch.Name()
 }
 
+// Validate validates the metadata.
 func (ch *Chart) Validate() error {
 	return ch.Metadata.Validate()
 }
@@ -107,4 +110,20 @@ func (ch *Chart) AppVersion() string {
 		return ""
 	}
 	return ch.Metadata.AppVersion
+}
+
+// CRDs returns a list of File objects in the 'crds/' directory of a Helm chart.
+func (ch *Chart) CRDs() []*File {
+	files := []*File{}
+	// Find all resources in the crds/ directory
+	for _, f := range ch.Files {
+		if strings.HasPrefix(f.Name, "crds/") {
+			files = append(files, f)
+		}
+	}
+	// Get CRDs from dependencies, too.
+	for _, dep := range ch.Dependencies() {
+		files = append(files, dep.CRDs()...)
+	}
+	return files
 }

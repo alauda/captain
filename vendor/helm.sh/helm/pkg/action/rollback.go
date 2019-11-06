@@ -19,12 +19,10 @@ package action
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/pkg/errors"
 
-	"helm.sh/helm/pkg/hooks"
 	"helm.sh/helm/pkg/release"
 )
 
@@ -51,33 +49,35 @@ func NewRollback(cfg *Configuration) *Rollback {
 }
 
 // Run executes 'helm rollback' against the given release.
-func (r *Rollback) Run(name string) (*release.Release, error) {
+func (r *Rollback) Run(name string) error {
+	if err := r.cfg.KubeClient.IsReachable(); err != nil {
+		return err
+	}
+
 	r.cfg.Log("preparing rollback of %s", name)
 	currentRelease, targetRelease, err := r.prepareRollback(name)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !r.DryRun {
 		r.cfg.Log("creating rolled back release for %s", name)
 		if err := r.cfg.Releases.Create(targetRelease); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	r.cfg.Log("performing rollback of %s", name)
-	res, err := r.performRollback(currentRelease, targetRelease)
-	if err != nil {
-		return res, err
+	if _, err := r.performRollback(currentRelease, targetRelease); err != nil {
+		return err
 	}
 
 	if !r.DryRun {
 		r.cfg.Log("updating status for rolled back release for %s", name)
 		if err := r.cfg.Releases.Update(targetRelease); err != nil {
-			return res, err
+			return err
 		}
 	}
-
-	return res, nil
+	return nil
 }
 
 // prepareRollback finds the previous release and prepares a new release object with
@@ -132,25 +132,32 @@ func (r *Rollback) prepareRollback(name string) (*release.Release, *release.Rele
 }
 
 func (r *Rollback) performRollback(currentRelease, targetRelease *release.Release) (*release.Release, error) {
-
 	if r.DryRun {
 		r.cfg.Log("dry run for %s", targetRelease.Name)
 		return targetRelease, nil
 	}
 
+	current, err := r.cfg.KubeClient.Build(bytes.NewBufferString(currentRelease.Manifest))
+	if err != nil {
+		return targetRelease, errors.Wrap(err, "unable to build kubernetes objects from current release manifest")
+	}
+	target, err := r.cfg.KubeClient.Build(bytes.NewBufferString(targetRelease.Manifest))
+	if err != nil {
+		return targetRelease, errors.Wrap(err, "unable to build kubernetes objects from new release manifest")
+	}
+
 	// pre-rollback hooks
 	if !r.DisableHooks {
-		if err := r.execHook(targetRelease.Hooks, hooks.PreRollback); err != nil {
+		if err := r.cfg.execHook(targetRelease, release.HookPreRollback, r.Timeout); err != nil {
 			return targetRelease, err
 		}
 	} else {
 		r.cfg.Log("rollback hooks disabled for %s", targetRelease.Name)
 	}
 
-	cr := bytes.NewBufferString(currentRelease.Manifest)
-	tr := bytes.NewBufferString(targetRelease.Manifest)
-	// TODO add wait
-	if err := r.cfg.KubeClient.Update(cr, tr, r.Force, r.Recreate); err != nil {
+	results, err := r.cfg.KubeClient.Update(current, target, r.Force)
+
+	if err != nil {
 		msg := fmt.Sprintf("Rollback %q failed: %s", targetRelease.Name, err)
 		r.cfg.Log("warning: %s", msg)
 		currentRelease.Info.Status = release.StatusSuperseded
@@ -161,9 +168,28 @@ func (r *Rollback) performRollback(currentRelease, targetRelease *release.Releas
 		return targetRelease, err
 	}
 
+	if r.Recreate {
+		// NOTE: Because this is not critical for a release to succeed, we just
+		// log if an error occurs and continue onward. If we ever introduce log
+		// levels, we should make these error level logs so users are notified
+		// that they'll need to go do the cleanup on their own
+		if err := recreate(r.cfg, results.Updated); err != nil {
+			r.cfg.Log(err.Error())
+		}
+	}
+
+	if r.Wait {
+		if err := r.cfg.KubeClient.Wait(target, r.Timeout); err != nil {
+			targetRelease.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", targetRelease.Name, err.Error()))
+			r.cfg.recordRelease(currentRelease)
+			r.cfg.recordRelease(targetRelease)
+			return targetRelease, errors.Wrapf(err, "release %s failed", targetRelease.Name)
+		}
+	}
+
 	// post-rollback hooks
 	if !r.DisableHooks {
-		if err := r.execHook(targetRelease.Hooks, hooks.PostRollback); err != nil {
+		if err := r.cfg.execHook(targetRelease, release.HookPostRollback, r.Timeout); err != nil {
 			return targetRelease, err
 		}
 	}
@@ -182,62 +208,4 @@ func (r *Rollback) performRollback(currentRelease, targetRelease *release.Releas
 	targetRelease.Info.Status = release.StatusDeployed
 
 	return targetRelease, nil
-}
-
-// execHook executes all of the hooks for the given hook event.
-func (r *Rollback) execHook(hs []*release.Hook, hook string) error {
-	timeout := r.Timeout
-	executingHooks := []*release.Hook{}
-
-	for _, h := range hs {
-		for _, e := range h.Events {
-			if string(e) == hook {
-				executingHooks = append(executingHooks, h)
-			}
-		}
-	}
-
-	sort.Sort(hookByWeight(executingHooks))
-
-	for _, h := range executingHooks {
-		if err := deleteHookByPolicy(r.cfg, h, hooks.BeforeHookCreation); err != nil {
-			return err
-		}
-
-		b := bytes.NewBufferString(h.Manifest)
-		if err := r.cfg.KubeClient.Create(b); err != nil {
-			return errors.Wrapf(err, "warning: Hook %s %s failed", hook, h.Path)
-		}
-		b.Reset()
-		b.WriteString(h.Manifest)
-
-		if err := r.cfg.KubeClient.WatchUntilReady(b, timeout); err != nil {
-			// If a hook is failed, checkout the annotation of the hook to determine whether the hook should be deleted
-			// under failed condition. If so, then clear the corresponding resource object in the hook
-			if err := deleteHookByPolicy(r.cfg, h, hooks.HookFailed); err != nil {
-				return err
-			}
-			return err
-		}
-	}
-
-	// If all hooks are succeeded, checkout the annotation of each hook to determine whether the hook should be deleted
-	// under succeeded condition. If so, then clear the corresponding resource object in each hook
-	for _, h := range executingHooks {
-		if err := deleteHookByPolicy(r.cfg, h, hooks.HookSucceeded); err != nil {
-			return err
-		}
-		h.LastRun = time.Now()
-	}
-
-	return nil
-}
-
-// deleteHookByPolicy deletes a hook if the hook policy instructs it to
-func deleteHookByPolicy(cfg *Configuration, h *release.Hook, policy string) error {
-	if hookHasDeletePolicy(h, policy) {
-		b := bytes.NewBufferString(h.Manifest)
-		return cfg.KubeClient.Delete(b)
-	}
-	return nil
 }

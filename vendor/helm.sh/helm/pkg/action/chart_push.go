@@ -19,7 +19,7 @@ package action
 import (
 	"io"
 
-	"helm.sh/helm/pkg/registry"
+	"helm.sh/helm/internal/experimental/registry"
 )
 
 // ChartPush performs a chart push operation.
