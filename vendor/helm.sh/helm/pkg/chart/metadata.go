@@ -26,6 +26,8 @@ type Maintainer struct {
 }
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.
+//
+// Spec: https://helm.sh/helm/blob/master/docs/design/chart_format.md#the-chart-file
 type Metadata struct {
 	// The name of the chart
 	Name string `json:"name,omitempty"`
@@ -64,7 +66,6 @@ type Metadata struct {
 	Type string `json:"type,omitempty"`
 }
 
-// Validate checks the metadata for known issues, returning an error if metadata is not correct
 func (md *Metadata) Validate() error {
 	if md == nil {
 		return ValidationError("chart.metadata is required")

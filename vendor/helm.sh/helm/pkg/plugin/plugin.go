@@ -23,10 +23,9 @@ import (
 	"runtime"
 	"strings"
 
-	"sigs.k8s.io/yaml"
+	"github.com/ghodss/yaml"
 
-	"helm.sh/helm/pkg/cli"
-	"helm.sh/helm/pkg/helmpath"
+	helm_env "helm.sh/helm/pkg/cli"
 )
 
 const pluginFileName = "plugin.yaml"
@@ -109,15 +108,14 @@ type Plugin struct {
 // - If both OS and Arch match the current platform, search will stop and the command will be prepared for execution
 // - If OS matches and there is no more specific match, the command will be prepared for execution
 // - If no OS/Arch match is found, return nil
-func getPlatformCommand(cmds []PlatformCommand) []string {
+func getPlatformCommand(platformCommands []PlatformCommand) []string {
 	var command []string
-	eq := strings.EqualFold
-	for _, c := range cmds {
-		if eq(c.OperatingSystem, runtime.GOOS) {
-			command = strings.Split(os.ExpandEnv(c.Command), " ")
+	for _, platformCommand := range platformCommands {
+		if strings.EqualFold(platformCommand.OperatingSystem, runtime.GOOS) {
+			command = strings.Split(os.ExpandEnv(platformCommand.Command), " ")
 		}
-		if eq(c.OperatingSystem, runtime.GOOS) && eq(c.Architecture, runtime.GOARCH) {
-			return strings.Split(os.ExpandEnv(c.Command), " ")
+		if strings.EqualFold(platformCommand.OperatingSystem, runtime.GOOS) && strings.EqualFold(platformCommand.Architecture, runtime.GOARCH) {
+			return strings.Split(os.ExpandEnv(platformCommand.Command), " ")
 		}
 	}
 	return command
@@ -216,21 +214,28 @@ func FindPlugins(plugdirs string) ([]*Plugin, error) {
 // SetupPluginEnv prepares os.Env for plugins. It operates on os.Env because
 // the plugin subsystem itself needs access to the environment variables
 // created here.
-func SetupPluginEnv(settings *cli.EnvSettings, name, base string) {
+func SetupPluginEnv(settings helm_env.EnvSettings,
+	shortName, base string) {
 	for key, val := range map[string]string{
-		"HELM_PLUGIN_NAME": name,
+		"HELM_PLUGIN_NAME": shortName,
 		"HELM_PLUGIN_DIR":  base,
 		"HELM_BIN":         os.Args[0],
-		"HELM_PLUGIN":      settings.PluginsDirectory,
+
+		// Set vars that may not have been set, and save client the
+		// trouble of re-parsing.
+		"HELM_PLUGIN": settings.PluginDirs(),
+		"HELM_HOME":   settings.Home.String(),
 
 		// Set vars that convey common information.
-		"HELM_REGISTRY_CONFIG":   settings.RegistryConfig,
-		"HELM_REPOSITORY_CONFIG": settings.RepositoryConfig,
-		"HELM_REPOSITORY_CACHE":  settings.RepositoryCache,
-		"HELM_PATH_STARTER":      helmpath.DataPath("starters"),
-		"HELM_HOME":              helmpath.DataPath(), // for backwards compatibility with Helm 2 plugins
-		"HELM_DEBUG":             fmt.Sprint(settings.Debug),
+		"HELM_PATH_REPOSITORY":      settings.Home.Repository(),
+		"HELM_PATH_REPOSITORY_FILE": settings.Home.RepositoryFile(),
+		"HELM_PATH_CACHE":           settings.Home.Cache(),
+		"HELM_PATH_STARTER":         settings.Home.Starters(),
 	} {
 		os.Setenv(key, val)
+	}
+
+	if settings.Debug {
+		os.Setenv("HELM_DEBUG", "1")
 	}
 }

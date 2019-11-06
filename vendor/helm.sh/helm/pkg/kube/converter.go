@@ -17,28 +17,19 @@ limitations under the License.
 package kube // import "helm.sh/helm/pkg/kube"
 
 import (
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-// AsVersioned converts the given info into a runtime.Object with the correct
-// group and version set
-func AsVersioned(info *resource.Info) runtime.Object {
-	return convertWithMapper(info.Object, info.Mapping)
-}
-
-// convertWithMapper converts the given object with the optional provided
-// RESTMapping. If no mapping is provided, the default schema versioner is used
-func convertWithMapper(obj runtime.Object, mapping *meta.RESTMapping) runtime.Object {
-	var gv = runtime.GroupVersioner(schema.GroupVersions(scheme.Scheme.PrioritizedVersionsAllGroups()))
-	if mapping != nil {
-		gv = mapping.GroupVersionKind.GroupVersion()
+func asVersioned(info *resource.Info) runtime.Object {
+	gv := runtime.GroupVersioner(schema.GroupVersions(scheme.Scheme.PrioritizedVersionsAllGroups()))
+	if info.Mapping != nil {
+		gv = info.Mapping.GroupVersionKind.GroupVersion()
 	}
-	if obj, err := runtime.ObjectConvertor(scheme.Scheme).ConvertToVersion(obj, gv); err == nil {
+	if obj, err := runtime.ObjectConvertor(scheme.Scheme).ConvertToVersion(info.Object, gv); err == nil {
 		return obj
 	}
-	return obj
+	return info.Object
 }

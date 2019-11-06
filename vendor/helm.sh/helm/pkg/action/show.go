@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"sigs.k8s.io/yaml"
+	"github.com/ghodss/yaml"
 
 	"helm.sh/helm/pkg/chart"
 	"helm.sh/helm/pkg/chart/loader"

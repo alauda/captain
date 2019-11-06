@@ -18,9 +18,10 @@ package action
 
 import (
 	"io"
+	"path/filepath"
 
-	"helm.sh/helm/internal/experimental/registry"
-	"helm.sh/helm/pkg/chart"
+	"helm.sh/helm/pkg/chart/loader"
+	"helm.sh/helm/pkg/registry"
 )
 
 // ChartSave performs a chart save operation.
@@ -36,15 +37,20 @@ func NewChartSave(cfg *Configuration) *ChartSave {
 }
 
 // Run executes the chart save operation
-func (a *ChartSave) Run(out io.Writer, ch *chart.Chart, ref string) error {
-	r, err := registry.ParseReference(ref)
+func (a *ChartSave) Run(out io.Writer, path, ref string) error {
+	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
 	}
 
-	// If no tag is present, use the chart version
-	if r.Tag == "" {
-		r.Tag = ch.Metadata.Version
+	ch, err := loader.LoadDir(path)
+	if err != nil {
+		return err
+	}
+
+	r, err := registry.ParseReference(ref)
+	if err != nil {
+		return err
 	}
 
 	return a.cfg.RegistryClient.SaveChart(ch, r)

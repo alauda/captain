@@ -18,13 +18,12 @@ package loader
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/pkg/chart"
 )
@@ -104,9 +103,6 @@ func LoadFiles(files []*BufferedFile) (*chart.Chart, error) {
 		// Deprecated: requirements.yaml is deprecated use Chart.yaml.
 		// We will handle it for you because we are nice people
 		case f.Name == "requirements.yaml":
-			if c.Metadata.APIVersion != chart.APIVersionV1 {
-				log.Printf("Warning: Dependencies are handled in Chart.yaml since apiVersion \"v2\". We recommend migrating dependencies to Chart.yaml.")
-			}
 			if c.Metadata == nil {
 				c.Metadata = new(chart.Metadata)
 			}

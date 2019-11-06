@@ -19,7 +19,7 @@ package action
 import (
 	"io"
 
-	"helm.sh/helm/internal/experimental/registry"
+	"helm.sh/helm/pkg/registry"
 )
 
 // ChartRemove performs a chart remove operation.

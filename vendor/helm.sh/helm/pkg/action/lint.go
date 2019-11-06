@@ -35,6 +35,8 @@ var errLintNoChart = errors.New("no chart found for linting (missing Chart.yaml)
 //
 // It provides the implementation of 'helm lint'.
 type Lint struct {
+	ValueOptions
+
 	Strict    bool
 	Namespace string
 }
@@ -51,7 +53,7 @@ func NewLint() *Lint {
 }
 
 // Run executes 'helm Lint' against the given chart.
-func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
+func (l *Lint) Run(paths []string) *LintResult {
 	lowestTolerance := support.ErrorSev
 	if l.Strict {
 		lowestTolerance = support.WarningSev
@@ -59,21 +61,15 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
 
 	result := &LintResult{}
 	for _, path := range paths {
-		linter, err := lintChart(path, vals, l.Namespace, l.Strict)
-		if err != nil {
+		if linter, err := lintChart(path, l.ValueOptions.rawValues, l.Namespace, l.Strict); err != nil {
 			if err == errLintNoChart {
-				result.Errors = append(result.Errors, err)
-			}
-			if linter.HighestSeverity >= lowestTolerance {
 				result.Errors = append(result.Errors, err)
 			}
 		} else {
 			result.Messages = append(result.Messages, linter.Messages...)
 			result.TotalChartsLinted++
-			for _, msg := range linter.Messages {
-				if msg.Severity == support.ErrorSev {
-					result.Errors = append(result.Errors, msg.Err)
-				}
+			if linter.HighestSeverity >= lowestTolerance {
+				result.Errors = append(result.Errors, err)
 			}
 		}
 	}
@@ -83,10 +79,6 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
 func lintChart(path string, vals map[string]interface{}, namespace string, strict bool) (support.Linter, error) {
 	var chartPath string
 	linter := support.Linter{}
-	currentVals := make(map[string]interface{}, len(vals))
-	for key, value := range vals {
-		currentVals[key] = value
-	}
 
 	if strings.HasSuffix(path, ".tgz") {
 		tempDir, err := ioutil.TempDir("", "helm-lint")
@@ -120,5 +112,5 @@ func lintChart(path string, vals map[string]interface{}, namespace string, stric
 		return linter, errLintNoChart
 	}
 
-	return lint.All(chartPath, currentVals, namespace, strict), nil
+	return lint.All(chartPath, vals, namespace, strict), nil
 }

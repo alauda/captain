@@ -17,14 +17,12 @@ limitations under the License.
 package action
 
 import (
-	"bytes"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 
 	"helm.sh/helm/pkg/release"
+	reltesting "helm.sh/helm/pkg/releasetesting"
 )
 
 // ReleaseTesting is the action for testing a release.
@@ -45,39 +43,52 @@ func NewReleaseTesting(cfg *Configuration) *ReleaseTesting {
 }
 
 // Run executes 'helm test' against the given release.
-func (r *ReleaseTesting) Run(name string) error {
+func (r *ReleaseTesting) Run(name string) (<-chan *release.TestReleaseResponse, <-chan error) {
+	errc := make(chan error, 1)
 	if err := validateReleaseName(name); err != nil {
-		return errors.Errorf("releaseTest: Release name is invalid: %s", name)
+		errc <- errors.Errorf("releaseTest: Release name is invalid: %s", name)
+		return nil, errc
 	}
 
 	// finds the non-deleted release with the given name
 	rel, err := r.cfg.Releases.Last(name)
 	if err != nil {
-		return err
+		errc <- err
+		return nil, errc
 	}
 
-	if err := r.cfg.execHook(rel, release.HookTest, r.Timeout); err != nil {
-		r.cfg.Releases.Update(rel)
-		return err
+	ch := make(chan *release.TestReleaseResponse, 1)
+	testEnv := &reltesting.Environment{
+		Namespace:  rel.Namespace,
+		KubeClient: r.cfg.KubeClient,
+		Timeout:    r.Timeout,
+		Messages:   ch,
 	}
+	r.cfg.Log("running tests for release %s", rel.Name)
+	tSuite := reltesting.NewTestSuite(rel)
 
-	if r.Cleanup {
-		var manifestsToDelete strings.Builder
-		for _, h := range rel.Hooks {
-			for _, e := range h.Events {
-				if e == release.HookTest {
-					fmt.Fprintf(&manifestsToDelete, "\n---\n%s", h.Manifest)
-				}
-			}
-		}
-		hooks, err := r.cfg.KubeClient.Build(bytes.NewBufferString(manifestsToDelete.String()))
-		if err != nil {
-			return fmt.Errorf("unable to build test hooks: %v", err)
-		}
-		if _, errs := r.cfg.KubeClient.Delete(hooks); errs != nil {
-			return fmt.Errorf("unable to delete test hooks: %v", joinErrors(errs))
-		}
-	}
+	go func() {
+		defer close(errc)
+		defer close(ch)
 
-	return r.cfg.Releases.Update(rel)
+		if err := tSuite.Run(testEnv); err != nil {
+			errc <- errors.Wrapf(err, "error running test suite for %s", rel.Name)
+			return
+		}
+
+		rel.Info.LastTestSuiteRun = &release.TestSuite{
+			StartedAt:   tSuite.StartedAt,
+			CompletedAt: tSuite.CompletedAt,
+			Results:     tSuite.Results,
+		}
+
+		if r.Cleanup {
+			testEnv.DeleteTestPods(tSuite.TestManifests)
+		}
+
+		if err := r.cfg.Releases.Update(rel); err != nil {
+			r.cfg.Log("test: Failed to store updated release: %s", err)
+		}
+	}()
+	return ch, errc
 }

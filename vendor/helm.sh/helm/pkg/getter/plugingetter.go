@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -30,8 +29,8 @@ import (
 
 // collectPlugins scans for getter plugins.
 // This will load plugins according to the cli.
-func collectPlugins(settings *cli.EnvSettings) (Providers, error) {
-	plugins, err := plugin.FindPlugins(settings.PluginsDirectory)
+func collectPlugins(settings cli.EnvSettings) (Providers, error) {
+	plugins, err := plugin.FindPlugins(settings.PluginDirs())
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +39,7 @@ func collectPlugins(settings *cli.EnvSettings) (Providers, error) {
 		for _, downloader := range plugin.Metadata.Downloaders {
 			result = append(result, Provider{
 				Schemes: downloader.Protocols,
-				New: NewPluginGetter(
+				New: newPluginGetter(
 					downloader.Command,
 					settings,
 					plugin.Metadata.Name,
@@ -55,21 +54,17 @@ func collectPlugins(settings *cli.EnvSettings) (Providers, error) {
 // pluginGetter is a generic type to invoke custom downloaders,
 // implemented in plugins.
 type pluginGetter struct {
-	command  string
-	settings *cli.EnvSettings
-	name     string
-	base     string
-	opts     options
+	command                   string
+	certFile, keyFile, cAFile string
+	settings                  cli.EnvSettings
+	name                      string
+	base                      string
 }
 
 // Get runs downloader plugin command
-func (p *pluginGetter) Get(href string, options ...Option) (*bytes.Buffer, error) {
-	for _, opt := range options {
-		opt(&p.opts)
-	}
-	commands := strings.Split(p.command, " ")
-	argv := append(commands[1:], p.opts.certFile, p.opts.keyFile, p.opts.caFile, href)
-	prog := exec.Command(filepath.Join(p.base, commands[0]), argv...)
+func (p *pluginGetter) Get(href string) (*bytes.Buffer, error) {
+	argv := []string{p.certFile, p.keyFile, p.cAFile, href}
+	prog := exec.Command(filepath.Join(p.base, p.command), argv...)
 	plugin.SetupPluginEnv(p.settings, p.name, p.base)
 	prog.Env = os.Environ()
 	buf := bytes.NewBuffer(nil)
@@ -85,17 +80,17 @@ func (p *pluginGetter) Get(href string, options ...Option) (*bytes.Buffer, error
 	return buf, nil
 }
 
-// NewPluginGetter constructs a valid plugin getter
-func NewPluginGetter(command string, settings *cli.EnvSettings, name, base string) Constructor {
-	return func(options ...Option) (Getter, error) {
+// newPluginGetter constructs a valid plugin getter
+func newPluginGetter(command string, settings cli.EnvSettings, name, base string) Constructor {
+	return func(URL, CertFile, KeyFile, CAFile string) (Getter, error) {
 		result := &pluginGetter{
 			command:  command,
+			certFile: CertFile,
+			keyFile:  KeyFile,
+			cAFile:   CAFile,
 			settings: settings,
 			name:     name,
 			base:     base,
-		}
-		for _, opt := range options {
-			opt(&result.opts)
 		}
 		return result, nil
 	}

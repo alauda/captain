@@ -17,7 +17,7 @@ limitations under the License.
 package action
 
 import (
-	"sigs.k8s.io/yaml"
+	"github.com/ghodss/yaml"
 
 	"helm.sh/helm/pkg/chartutil"
 )

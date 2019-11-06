@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"helm.sh/helm/pkg/chart"
+	"helm.sh/helm/pkg/version"
 )
 
 // ProcessDependencies checks through this chart's dependencies, processing accordingly.
@@ -112,7 +113,7 @@ func getAliasDependency(charts []*chart.Chart, dep *chart.Dependency) *chart.Cha
 		if c.Name() != dep.Name {
 			continue
 		}
-		if !IsCompatibleRange(dep.Version, c.Metadata.Version) {
+		if !version.IsCompatibleRange(dep.Version, c.Metadata.Version) {
 			continue
 		}
 
@@ -143,7 +144,7 @@ func processDependencyEnabled(c *chart.Chart, v map[string]interface{}) error {
 Loop:
 	for _, existing := range c.Dependencies() {
 		for _, req := range c.Metadata.Dependencies {
-			if existing.Name() == req.Name && IsCompatibleRange(req.Version, existing.Metadata.Version) {
+			if existing.Name() == req.Name && version.IsCompatibleRange(req.Version, existing.Metadata.Version) {
 				continue Loop
 			}
 		}

@@ -38,7 +38,7 @@ import (
 type Pull struct {
 	ChartPathOptions
 
-	Settings *cli.EnvSettings // TODO: refactor this out of pkg/action
+	Settings cli.EnvSettings // TODO: refactor this out of pkg/action
 
 	Devel       bool
 	Untar       bool
@@ -57,15 +57,13 @@ func (p *Pull) Run(chartRef string) (string, error) {
 	var out strings.Builder
 
 	c := downloader.ChartDownloader{
-		Out:     &out,
-		Keyring: p.Keyring,
-		Verify:  downloader.VerifyNever,
-		Getters: getter.All(p.Settings),
-		Options: []getter.Option{
-			getter.WithBasicAuth(p.Username, p.Password),
-		},
-		RepositoryConfig: p.Settings.RepositoryConfig,
-		RepositoryCache:  p.Settings.RepositoryCache,
+		HelmHome: p.Settings.Home,
+		Out:      &out,
+		Keyring:  p.Keyring,
+		Verify:   downloader.VerifyNever,
+		Getters:  getter.All(p.Settings),
+		Username: p.Username,
+		Password: p.Password,
 	}
 
 	if p.Verify {

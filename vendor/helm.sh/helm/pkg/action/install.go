@@ -19,19 +19,20 @@ package action
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"k8s.io/klog"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/Masterminds/sprig"
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/cli-runtime/pkg/resource"
 
 	"helm.sh/helm/pkg/chart"
 	"helm.sh/helm/pkg/chartutil"
@@ -39,12 +40,12 @@ import (
 	"helm.sh/helm/pkg/downloader"
 	"helm.sh/helm/pkg/engine"
 	"helm.sh/helm/pkg/getter"
-	kubefake "helm.sh/helm/pkg/kube/fake"
+	"helm.sh/helm/pkg/hooks"
 	"helm.sh/helm/pkg/release"
 	"helm.sh/helm/pkg/releaseutil"
 	"helm.sh/helm/pkg/repo"
-	"helm.sh/helm/pkg/storage"
-	"helm.sh/helm/pkg/storage/driver"
+	"helm.sh/helm/pkg/strvals"
+	"helm.sh/helm/pkg/version"
 )
 
 // releaseNameMaxLen is the maximum length of a release name.
@@ -67,8 +68,8 @@ type Install struct {
 	cfg *Configuration
 
 	ChartPathOptions
+	ValueOptions
 
-	ClientOnly       bool
 	DryRun           bool
 	DisableHooks     bool
 	Replace          bool
@@ -81,11 +82,15 @@ type Install struct {
 	GenerateName     bool
 	NameTemplate     string
 	OutputDir        string
-	Atomic           bool
-	SkipCRDs         bool
 }
 
-// ChartPathOptions captures common options used for controlling chart paths
+type ValueOptions struct {
+	ValueFiles   []string
+	StringValues []string
+	Values       []string
+	rawValues    map[string]interface{}
+}
+
 type ChartPathOptions struct {
 	CaFile   string // --ca-file
 	CertFile string // --cert-file
@@ -105,83 +110,13 @@ func NewInstall(cfg *Configuration) *Install {
 	}
 }
 
-func (i *Install) installCRDs(crds []*chart.File) error {
-	// We do these one file at a time in the order they were read.
-	totalItems := []*resource.Info{}
-	for _, obj := range crds {
-		// Read in the resources
-		res, err := i.cfg.KubeClient.Build(bytes.NewBuffer(obj.Data))
-		if err != nil {
-			return errors.Wrapf(err, "failed to install CRD %s", obj.Name)
-		}
-
-		// Send them to Kube
-		if _, err := i.cfg.KubeClient.Create(res); err != nil {
-			// If the error is CRD already exists, continue.
-			if apierrors.IsAlreadyExists(err) {
-				crdName := res[0].Name
-				i.cfg.Log("CRD %s is already present. Skipping.", crdName)
-				continue
-			}
-			return errors.Wrapf(err, "failed to instal CRD %s", obj.Name)
-		}
-		totalItems = append(totalItems, res...)
-	}
-	// Invalidate the local cache, since it will not have the new CRDs
-	// present.
-	discoveryClient, err := i.cfg.RESTClientGetter.ToDiscoveryClient()
-	if err != nil {
-		return err
-	}
-	i.cfg.Log("Clearing discovery cache")
-	discoveryClient.Invalidate()
-	// Give time for the CRD to be recognized.
-	if err := i.cfg.KubeClient.Wait(totalItems, 60*time.Second); err != nil {
-		return err
-	}
-	// Make sure to force a rebuild of the cache.
-	discoveryClient.ServerGroups()
-	return nil
-}
-
 // Run executes the installation
 //
 // If DryRun is set to true, this will prepare the release, but not install it
-func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.Release, error) {
-	if err := i.cfg.KubeClient.IsReachable(); err != nil {
-		return nil, err
-	}
-
+func (i *Install) Run(chrt *chart.Chart) (*release.Release, error) {
 	if err := i.availableName(); err != nil {
 		return nil, err
 	}
-
-	// Pre-install anything in the crd/ directory. We do this before Helm
-	// contacts the upstream server and builds the capabilities object.
-	if crds := chrt.CRDs(); !i.ClientOnly && !i.SkipCRDs && len(crds) > 0 {
-		// On dry run, bail here
-		if i.DryRun {
-			i.cfg.Log("WARNING: This chart or one of its subcharts contains CRDs. Rendering may fail or contain inaccuracies.")
-		} else if err := i.installCRDs(crds); err != nil {
-			return nil, err
-		}
-	}
-
-	if i.ClientOnly {
-		// Add mock objects in here so it doesn't use Kube API server
-		// NOTE(bacongobbler): used for `helm template`
-		i.cfg.Capabilities = chartutil.DefaultCapabilities
-		i.cfg.KubeClient = &kubefake.PrintingKubeClient{Out: ioutil.Discard}
-		i.cfg.Releases = storage.Init(driver.NewMemory())
-	}
-
-	if err := chartutil.ProcessDependencies(chrt, vals); err != nil {
-		return nil, err
-	}
-
-	// Make sure if Atomic is set, that wait is set as well. This makes it so
-	// the user doesn't have to specify both
-	i.Wait = i.Wait || i.Atomic
 
 	caps, err := i.cfg.getCapabilities()
 	if err != nil {
@@ -193,13 +128,12 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		Namespace: i.Namespace,
 		IsInstall: true,
 	}
-	valuesToRender, err := chartutil.ToRenderValues(chrt, vals, options, caps)
+	valuesToRender, err := chartutil.ToRenderValues(chrt, i.rawValues, options, caps)
 	if err != nil {
 		return nil, err
 	}
 
-	rel := i.createRelease(chrt, vals)
-
+	rel := i.createRelease(chrt, i.rawValues)
 	var manifestDoc *bytes.Buffer
 	rel.Hooks, manifestDoc, rel.Info.Notes, err = i.cfg.renderResources(chrt, valuesToRender, i.OutputDir)
 	// Even for errors, attach this if available
@@ -213,18 +147,11 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		return rel, err
 	}
 
-	klog.Info("render values done")
-
-
 	// Mark this release as in-progress
 	rel.SetStatus(release.StatusPendingInstall, "Initial install underway")
-
-	resources, err := i.cfg.KubeClient.Build(bytes.NewBufferString(rel.Manifest))
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to build kubernetes objects from release manifest")
+	if err := i.validateManifest(manifestDoc); err != nil {
+		return rel, err
 	}
-
-	klog.Info("validate manifest done")
 
 	// Bail out here if it is a dry run
 	if i.DryRun {
@@ -232,7 +159,7 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		return rel, nil
 	}
 
-	// If Replace is true, we need to supercede the last release.
+	// If Replace is true, we need to supersede the last release.
 	if i.Replace {
 		if err := i.replaceRelease(rel); err != nil {
 			return nil, err
@@ -248,41 +175,40 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		return rel, err
 	}
 
-	klog.Info("create release done")
-
 	// pre-install hooks
 	if !i.DisableHooks {
-
-		if err := i.cfg.execHook(rel, release.HookCRDInstall, i.Timeout); err != nil {
-			return i.failRelease(rel, fmt.Errorf("failed crd-install: %s", err))
-		}
-
-		if err := i.cfg.execHook(rel, release.HookPreInstall, i.Timeout); err != nil {
-			return i.failRelease(rel, fmt.Errorf("failed pre-install: %s", err))
+		if err := i.execHook(rel.Hooks, hooks.PreInstall); err != nil {
+			rel.SetStatus(release.StatusFailed, "failed pre-install: "+err.Error())
+			_ = i.replaceRelease(rel)
+			return rel, err
 		}
 	}
-
-
 
 	// At this point, we can do the install. Note that before we were detecting whether to
 	// do an update, but it's not clear whether we WANT to do an update if the re-use is set
 	// to true, since that is basically an upgrade operation.
-	if _, err := i.cfg.KubeClient.Create(resources); err != nil {
-		return i.failRelease(rel, err)
+	buf := bytes.NewBufferString(rel.Manifest)
+	if err := i.cfg.KubeClient.Create(buf); err != nil {
+		rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", i.ReleaseName, err.Error()))
+		i.recordRelease(rel) // Ignore the error, since we have another error to deal with.
+		return rel, errors.Wrapf(err, "release %s failed", i.ReleaseName)
 	}
 
-	klog.Info("create manifest resources")
-
 	if i.Wait {
-		if err := i.cfg.KubeClient.Wait(resources, i.Timeout); err != nil {
-			return i.failRelease(rel, err)
+		buf := bytes.NewBufferString(rel.Manifest)
+		if err := i.cfg.KubeClient.Wait(buf, i.Timeout); err != nil {
+			rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", i.ReleaseName, err.Error()))
+			i.recordRelease(rel) // Ignore the error, since we have another error to deal with.
+			return rel, errors.Wrapf(err, "release %s failed", i.ReleaseName)
 		}
 
 	}
 
 	if !i.DisableHooks {
-		if err := i.cfg.execHook(rel, release.HookPostInstall, i.Timeout); err != nil {
-			return i.failRelease(rel, fmt.Errorf("failed post-install: %s", err))
+		if err := i.execHook(rel.Hooks, hooks.PostInstall); err != nil {
+			rel.SetStatus(release.StatusFailed, "failed post-install: "+err.Error())
+			_ = i.replaceRelease(rel)
+			return rel, err
 		}
 	}
 
@@ -300,30 +226,13 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 	return rel, nil
 }
 
-func (i *Install) failRelease(rel *release.Release, err error) (*release.Release, error) {
-	rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release %q failed: %s", i.ReleaseName, err.Error()))
-	if i.Atomic {
-		i.cfg.Log("Install failed and atomic is set, uninstalling release")
-		uninstall := NewUninstall(i.cfg)
-		uninstall.DisableHooks = i.DisableHooks
-		uninstall.KeepHistory = false
-		uninstall.Timeout = i.Timeout
-		if _, uninstallErr := uninstall.Run(i.ReleaseName); uninstallErr != nil {
-			return rel, errors.Wrapf(uninstallErr, "an error occurred while uninstalling the release. original install error: %s", err)
-		}
-		return rel, errors.Wrapf(err, "release %s failed, and has been uninstalled due to atomic being set", i.ReleaseName)
-	}
-	i.recordRelease(rel) // Ignore the error, since we have another error to deal with.
-	return rel, err
-}
-
 // availableName tests whether a name is available
 //
 // Roughly, this will return an error if name is
 //
 //	- empty
 //	- too long
-//	- already in use, and not deleted
+// 	- already in use, and not deleted
 //	- used by a deleted release, and i.Replace is false
 func (i *Install) availableName() error {
 	start := i.ReleaseName
@@ -333,10 +242,6 @@ func (i *Install) availableName() error {
 
 	if len(start) > releaseNameMaxLen {
 		return errors.Errorf("release name %q exceeds max length of %d", start, releaseNameMaxLen)
-	}
-
-	if i.DryRun {
-		return nil
 	}
 
 	h, err := i.cfg.Releases.History(start)
@@ -413,7 +318,7 @@ func (c *Configuration) renderResources(ch *chart.Chart, values chartutil.Values
 	}
 
 	if ch.Metadata.KubeVersion != "" {
-		if !chartutil.IsCompatibleRange(ch.Metadata.KubeVersion, caps.KubeVersion.String()) {
+		if !version.IsCompatibleRange(ch.Metadata.KubeVersion, caps.KubeVersion.String()) {
 			return hs, b, "", errors.Errorf("chart requires kubernetesVersion: %s which is incompatible with Kubernetes %s", ch.Metadata.KubeVersion, caps.KubeVersion.String())
 		}
 	}
@@ -460,24 +365,22 @@ func (c *Configuration) renderResources(ch *chart.Chart, values chartutil.Values
 	}
 
 	// Aggregate all valid manifests into one big doc.
-	fileWritten := make(map[string]bool)
 	for _, m := range manifests {
 		if outputDir == "" {
 			fmt.Fprintf(b, "---\n# Source: %s\n%s\n", m.Name, m.Content)
 		} else {
-			err = writeToFile(outputDir, m.Name, m.Content, fileWritten[m.Name])
+			err = writeToFile(outputDir, m.Name, m.Content)
 			if err != nil {
 				return hs, b, "", err
 			}
-			fileWritten[m.Name] = true
 		}
 	}
 
 	return hs, b, notes, nil
 }
 
-// write the <data> to <output-dir>/<name>. <append> controls if the file is created or content will be appended
-func writeToFile(outputDir string, name string, data string, append bool) error {
+// write the <data> to <output-dir>/<name>
+func writeToFile(outputDir string, name string, data string) error {
 	outfileName := strings.Join([]string{outputDir, name}, string(filepath.Separator))
 
 	err := ensureDirectoryForFile(outfileName)
@@ -485,14 +388,14 @@ func writeToFile(outputDir string, name string, data string, append bool) error 
 		return err
 	}
 
-	f, err := createOrOpenFile(outfileName, append)
+	f, err := os.Create(outfileName)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprintf("---\n# Source: %s\n%s\n", name, data))
+	_, err = f.WriteString(fmt.Sprintf("---\n# Source: %s\n%s", name, data))
 
 	if err != nil {
 		return err
@@ -500,13 +403,6 @@ func writeToFile(outputDir string, name string, data string, append bool) error 
 
 	fmt.Printf("wrote %s\n", outfileName)
 	return nil
-}
-
-func createOrOpenFile(filename string, append bool) (*os.File, error) {
-	if append {
-		return os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0600)
-	}
-	return os.Create(filename)
 }
 
 // check if the directory exists to create file. creates if don't exists
@@ -518,6 +414,95 @@ func ensureDirectoryForFile(file string) error {
 	}
 
 	return os.MkdirAll(baseDir, defaultDirectoryPermission)
+}
+
+// validateManifest checks to see whether the given manifest is valid for the current Kubernetes
+func (i *Install) validateManifest(manifest io.Reader) error {
+	_, err := i.cfg.KubeClient.BuildUnstructured(manifest)
+	return err
+}
+
+// execHook executes all of the hooks for the given hook event.
+func (i *Install) execHook(hs []*release.Hook, hook string) error {
+	executingHooks := []*release.Hook{}
+
+	for _, h := range hs {
+		for _, e := range h.Events {
+			if string(e) == hook {
+				executingHooks = append(executingHooks, h)
+			}
+		}
+	}
+
+	sort.Sort(hookByWeight(executingHooks))
+
+	for _, h := range executingHooks {
+		if err := deleteHookByPolicy(i.cfg, h, hooks.BeforeHookCreation); err != nil {
+			return err
+		}
+
+		b := bytes.NewBufferString(h.Manifest)
+		if err := i.cfg.KubeClient.Create(b); err != nil {
+			return errors.Wrapf(err, "warning: Release %s %s %s failed", i.ReleaseName, hook, h.Path)
+		}
+		b.Reset()
+		b.WriteString(h.Manifest)
+
+		if err := i.cfg.KubeClient.WatchUntilReady(b, i.Timeout); err != nil {
+			// If a hook is failed, checkout the annotation of the hook to determine whether the hook should be deleted
+			// under failed condition. If so, then clear the corresponding resource object in the hook
+			if err := deleteHookByPolicy(i.cfg, h, hooks.HookFailed); err != nil {
+				return err
+			}
+			return err
+		}
+	}
+
+	// If all hooks are succeeded, checkout the annotation of each hook to determine whether the hook should be deleted
+	// under succeeded condition. If so, then clear the corresponding resource object in each hook
+	for _, h := range executingHooks {
+		if err := deleteHookByPolicy(i.cfg, h, hooks.HookSucceeded); err != nil {
+			return err
+		}
+		h.LastRun = time.Now()
+	}
+
+	return nil
+}
+
+// deletePolices represents a mapping between the key in the annotation for label deleting policy and its real meaning
+// FIXME: Can we refactor this out?
+var deletePolices = map[string]release.HookDeletePolicy{
+	hooks.HookSucceeded:      release.HookSucceeded,
+	hooks.HookFailed:         release.HookFailed,
+	hooks.BeforeHookCreation: release.HookBeforeHookCreation,
+}
+
+// hookHasDeletePolicy determines whether the defined hook deletion policy matches the hook deletion polices
+// supported by helm. If so, mark the hook as one should be deleted.
+func hookHasDeletePolicy(h *release.Hook, policy string) bool {
+	dp, ok := deletePolices[policy]
+	if !ok {
+		return false
+	}
+	for _, v := range h.DeletePolicies {
+		if dp == v {
+			return true
+		}
+	}
+	return false
+}
+
+// hookByWeight is a sorter for hooks
+type hookByWeight []*release.Hook
+
+func (x hookByWeight) Len() int      { return len(x) }
+func (x hookByWeight) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+func (x hookByWeight) Less(i, j int) bool {
+	if x[i].Weight == x[j].Weight {
+		return x[i].Name < x[j].Name
+	}
+	return x[i].Weight < x[j].Weight
 }
 
 // NameAndChart returns the name and chart that should be used.
@@ -559,7 +544,6 @@ func (i *Install) NameAndChart(args []string) (string, string, error) {
 	return fmt.Sprintf("%s-%d", base, time.Now().Unix()), args[0], nil
 }
 
-// TemplateName renders a name template, returning the name or an error.
 func TemplateName(nameTemplate string) (string, error) {
 	if nameTemplate == "" {
 		return "", nil
@@ -577,7 +561,6 @@ func TemplateName(nameTemplate string) (string, error) {
 	return b.String(), nil
 }
 
-// CheckDependencies checks the dependencies for a chart.
 func CheckDependencies(ch *chart.Chart, reqs []*chart.Dependency) error {
 	var missing []string
 
@@ -604,10 +587,11 @@ OUTER:
 // Order of resolution:
 // - relative to current working directory
 // - if path is absolute or begins with '.', error out here
+// - chart repos in $HELM_HOME
 // - URL
 //
-// If 'verify' was set on ChartPathOptions, this will attempt to also verify the chart.
-func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (string, error) {
+// If 'verify' is true, this will attempt to also verify the chart.
+func (c *ChartPathOptions) LocateChart(name string, settings cli.EnvSettings) (string, error) {
 	name = strings.TrimSpace(name)
 	version := strings.TrimSpace(c.Version)
 
@@ -627,15 +611,18 @@ func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (
 		return name, errors.Errorf("path %q not found", name)
 	}
 
+	crepo := filepath.Join(settings.Home.Repository(), name)
+	if _, err := os.Stat(crepo); err == nil {
+		return filepath.Abs(crepo)
+	}
+
 	dl := downloader.ChartDownloader{
-		Out:     os.Stdout,
-		Keyring: c.Keyring,
-		Getters: getter.All(settings),
-		Options: []getter.Option{
-			getter.WithBasicAuth(c.Username, c.Password),
-		},
-		RepositoryConfig: settings.RepositoryConfig,
-		RepositoryCache:  settings.RepositoryCache,
+		HelmHome: settings.Home,
+		Out:      os.Stdout,
+		Keyring:  c.Keyring,
+		Getters:  getter.All(settings),
+		Username: c.Username,
+		Password: c.Password,
 	}
 	if c.Verify {
 		dl.Verify = downloader.VerifyAlways
@@ -649,11 +636,11 @@ func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (
 		name = chartURL
 	}
 
-	if err := os.MkdirAll(settings.RepositoryCache, 0755); err != nil {
-		return "", err
+	if _, err := os.Stat(settings.Home.Archive()); os.IsNotExist(err) {
+		os.MkdirAll(settings.Home.Archive(), 0744)
 	}
 
-	filename, _, err := dl.DownloadTo(name, version, settings.RepositoryCache)
+	filename, _, err := dl.DownloadTo(name, version, settings.Home.Archive())
 	if err == nil {
 		lname, err := filepath.Abs(filename)
 		if err != nil {
@@ -665,4 +652,109 @@ func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (
 	}
 
 	return filename, errors.Errorf("failed to download %q (hint: running `helm repo update` may help)", name)
+}
+
+// MergeValues merges values from files specified via -f/--values and
+// directly via --set or --set-string, marshaling them to YAML
+func (v *ValueOptions) MergeValues(settings cli.EnvSettings) error {
+	base := map[string]interface{}{}
+
+	// User specified a values files via -f/--values
+	for _, filePath := range v.ValueFiles {
+		currentMap := map[string]interface{}{}
+
+		bytes, err := readFile(filePath, settings)
+		if err != nil {
+			return err
+		}
+
+		if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
+			return errors.Wrapf(err, "failed to parse %s", filePath)
+		}
+		// Merge with the previous map
+		base = mergeMaps(base, currentMap)
+	}
+
+	// User specified a value via --set
+	for _, value := range v.Values {
+		if err := strvals.ParseInto(value, base); err != nil {
+			return errors.Wrap(err, "failed parsing --set data")
+		}
+	}
+
+	// User specified a value via --set-string
+	for _, value := range v.StringValues {
+		if err := strvals.ParseIntoString(value, base); err != nil {
+			return errors.Wrap(err, "failed parsing --set-string data")
+		}
+	}
+
+	v.rawValues = base
+	return nil
+}
+
+// mergeValues merges source and destination map, preferring values from the source map
+func mergeValues(dest, src map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{})
+	for k, v := range dest {
+		out[k] = v
+	}
+	for k, v := range src {
+		if _, ok := out[k]; !ok {
+			// If the key doesn't exist already, then just set the key to that value
+		} else if nextMap, ok := v.(map[string]interface{}); !ok {
+			// If it isn't another map, overwrite the value
+		} else if destMap, isMap := out[k].(map[string]interface{}); !isMap {
+			// Edge case: If the key exists in the destination, but isn't a map
+			// If the source map has a map for this key, prefer it
+		} else {
+			// If we got to this point, it is a map in both, so merge them
+			out[k] = mergeValues(destMap, nextMap)
+			continue
+		}
+		out[k] = v
+	}
+	return out
+}
+
+func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(a))
+	for k, v := range a {
+		out[k] = v
+	}
+	for k, v := range b {
+		if v, ok := v.(map[string]interface{}); ok {
+			if bv, ok := out[k]; ok {
+				if bv, ok := bv.(map[string]interface{}); ok {
+					out[k] = mergeMaps(bv, v)
+					continue
+				}
+			}
+		}
+		out[k] = v
+	}
+	return out
+}
+
+// readFile load a file from stdin, the local directory, or a remote file with a url.
+func readFile(filePath string, settings cli.EnvSettings) ([]byte, error) {
+	if strings.TrimSpace(filePath) == "-" {
+		return ioutil.ReadAll(os.Stdin)
+	}
+	u, _ := url.Parse(filePath)
+	p := getter.All(settings)
+
+	// FIXME: maybe someone handle other protocols like ftp.
+	getterConstructor, err := p.ByScheme(u.Scheme)
+
+	if err != nil {
+		return ioutil.ReadFile(filePath)
+	}
+
+	getter, err := getterConstructor(filePath, "", "", "")
+	if err != nil {
+		return []byte{}, err
+	}
+	data, err := getter.Get(filePath)
+	return data.Bytes(), err
 }
