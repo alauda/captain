@@ -17,13 +17,13 @@ limitations under the License.
 package releaseutil
 
 import (
-	"k8s.io/klog"
 	"log"
 	"path"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/pkg/chartutil"
@@ -64,7 +64,6 @@ var events = map[string]release.HookEvent{
 	release.HookTest.String():         release.HookTest,
 	// Support test-success for backward compatibility with Helm 2 tests
 	"test-success": release.HookTest,
-	// crd-install hook
 	"crd-install":         release.HookCRDInstall,
 }
 
@@ -135,6 +134,7 @@ func (file *manifestFile) sort(result *result) error {
 		if entry.Version != "" && !file.apis.Has(entry.Version) {
 			err := errors.Errorf("apiVersion %q in %s is not available", entry.Version, file.path)
 			klog.Warning("apiVersion not found when parse yaml, may be a crd, skip for now:", err)
+			//return errors.Errorf("apiVersion %q in %s is not available", entry.Version, file.path)
 		}
 
 		if !hasAnyAnnotation(entry) {
