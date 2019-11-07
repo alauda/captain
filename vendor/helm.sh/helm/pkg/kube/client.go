@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"log"
 	"strings"
 	"time"
@@ -31,12 +30,15 @@ import (
 	batch "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -146,8 +148,8 @@ func (c *Client) Update(original, target ResourceList, force bool) (*Result, err
 
 		helper := resource.NewHelper(info.Client, info.Mapping)
 		var existObject runtime.Object
-
-		if existObject, err = helper.Get(info.Namespace, info.Name, info.Export); err != nil {
+		if eo, err := helper.Get(info.Namespace, info.Name, info.Export); err != nil {
+			existObject = eo
 			if !apierrors.IsNotFound(err) {
 				return errors.Wrap(err, "could not get information about the resource")
 			}
@@ -303,57 +305,60 @@ func createPatch(target *resource.Info, current runtime.Object) ([]byte, types.P
 	if err != nil {
 		return nil, types.StrategicMergePatchType, errors.Wrap(err, "serializing current configuration")
 	}
-
-	oldAccessor, err := meta.Accessor(current)
-	if err != nil {
-		return nil, types.StrategicMergePatchType, errors.Wrap(err, "get old object meta error")
-	}
-
-	newAccessor, err := meta.Accessor(target.Object)
-	if err != nil {
-		return nil, types.StrategicMergePatchType, errors.Wrap(err, "get new object meta error")
-	}
-
-	newAccessor.SetResourceVersion(oldAccessor.GetResourceVersion())
-
 	newData, err := json.Marshal(target.Object)
 	if err != nil {
 		return nil, types.StrategicMergePatchType, errors.Wrap(err, "serializing target configuration")
 	}
 
-	// Fetch the current object for the three way merge
-	helper := resource.NewHelper(target.Client, target.Mapping)
-	currentObj, err := helper.Get(target.Namespace, target.Name, target.Export)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return nil, types.StrategicMergePatchType, errors.Wrapf(err, "unable to get data for current object %s/%s", target.Namespace, target.Name)
-	}
-
-	// Even if currentObj is nil (because it was not found), it will marshal just fine
-	currentData, err := json.Marshal(currentObj)
+	// why we need this...
+	oldAccessor, err := meta.Accessor(current)
 	if err != nil {
-		return nil, types.StrategicMergePatchType, errors.Wrap(err, "serializing live configuration")
+		return nil, types.StrategicMergePatchType, errors.Wrap(err, "get old object meta error")
+	}
+	newAccessor, err := meta.Accessor(target.Object)
+	if err != nil {
+		return nil, types.StrategicMergePatchType, errors.Wrap(err, "get new object meta error")
+	}
+	newAccessor.SetResourceVersion(oldAccessor.GetResourceVersion())
+
+	// While different objects need different merge types, the parent function
+	// that calls this does not try to create a patch when the data (first
+	// returned object) is nil. We can skip calculating the merge type as
+	// the returned merge type is ignored.
+	if apiequality.Semantic.DeepEqual(oldData, newData) {
+		return nil, types.StrategicMergePatchType, nil
 	}
 
 	// Get a versioned object
-	versionedObject := AsVersioned(target)
+	versionedObject, err := asVersioned(target)
 
 	// Unstructured objects, such as CRDs, may not have an not registered error
 	// returned from ConvertToVersion. Anything that's unstructured should
 	// use the jsonpatch.CreateMergePatch. Strategic Merge Patch is not supported
 	// on objects like CRDs.
-	if _, ok := versionedObject.(runtime.Unstructured); ok {
+	_, isUnstructured := versionedObject.(runtime.Unstructured)
+
+	// On newer K8s versions, CRDs aren't unstructured but has this dedicated type
+	_, isCRD := versionedObject.(*apiextv1beta1.CustomResourceDefinition)
+
+	switch {
+	case runtime.IsNotRegisteredError(err), isUnstructured, isCRD:
 		// fall back to generic JSON merge patch
 		patch, err := jsonpatch.CreateMergePatch(oldData, newData)
-		return patch, types.MergePatchType, errors.Wrap(err, "create patch for unstruct error")
+		if err != nil {
+			return nil, types.MergePatchType, fmt.Errorf("failed to create merge patch: %v", err)
+		}
+		return patch, types.MergePatchType, nil
+	case err != nil:
+		return nil, types.StrategicMergePatchType, fmt.Errorf("failed to get versionedObject: %s", err)
+	default:
+		patch, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, versionedObject)
+		if err != nil {
+			return nil, types.StrategicMergePatchType, fmt.Errorf("failed to create two-way merge patch: %v", err)
+		}
+		return patch, types.StrategicMergePatchType, nil
 	}
-
-	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(versionedObject)
-	if err != nil {
-		return nil, types.StrategicMergePatchType, errors.Wrap(err, "unable to create patch metadata from object")
-	}
-
-	patch, err := strategicpatch.CreateThreeWayMergePatch(oldData, newData, currentData, patchMeta, true)
-	return patch, types.StrategicMergePatchType, err
+	
 }
 
 func updateResource(c *Client, target *resource.Info, currentObj runtime.Object, force bool) error {
@@ -366,7 +371,6 @@ func updateResource(c *Client, target *resource.Info, currentObj runtime.Object,
 		// This needs to happen to make sure that tiller has the latest info from the API
 		// Otherwise there will be no labels and other functions that use labels will panic
 		if err := target.Get(); err != nil {
-			c.Log("get target resource error: ", err)
 			return errors.Wrap(err, "error trying to refresh resource information")
 		}
 	} else {
@@ -544,4 +548,19 @@ func (c *Client) WaitAndGetCompletedPodPhase(name string, timeout time.Duration)
 	}
 
 	return v1.PodUnknown, err
+}
+
+
+func asVersioned(info *resource.Info) (runtime.Object, error) {
+	converter := runtime.ObjectConvertor(scheme.Scheme)
+	groupVersioner := runtime.GroupVersioner(schema.GroupVersions(scheme.Scheme.PrioritizedVersionsAllGroups()))
+	if info.Mapping != nil {
+		groupVersioner = info.Mapping.GroupVersionKind.GroupVersion()
+	}
+
+	obj, err := converter.ConvertToVersion(info.Object, groupVersioner)
+	if err != nil {
+		return info.Object, err
+	}
+	return obj, nil
 }

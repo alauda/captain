@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/klog"
 	"os"
 	"path"
 	"path/filepath"
@@ -213,9 +212,6 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		return rel, err
 	}
 
-	klog.Info("render values done")
-
-
 	// Mark this release as in-progress
 	rel.SetStatus(release.StatusPendingInstall, "Initial install underway")
 
@@ -223,8 +219,6 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to build kubernetes objects from release manifest")
 	}
-
-	klog.Info("validate manifest done")
 
 	// Bail out here if it is a dry run
 	if i.DryRun {
@@ -248,8 +242,6 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		return rel, err
 	}
 
-	klog.Info("create release done")
-
 	// pre-install hooks
 	if !i.DisableHooks {
 
@@ -262,16 +254,12 @@ func (i *Install) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 		}
 	}
 
-
-
 	// At this point, we can do the install. Note that before we were detecting whether to
 	// do an update, but it's not clear whether we WANT to do an update if the re-use is set
 	// to true, since that is basically an upgrade operation.
 	if _, err := i.cfg.KubeClient.Create(resources); err != nil {
 		return i.failRelease(rel, err)
 	}
-
-	klog.Info("create manifest resources")
 
 	if i.Wait {
 		if err := i.cfg.KubeClient.Wait(resources, i.Timeout); err != nil {
