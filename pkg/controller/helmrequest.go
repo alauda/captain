@@ -213,6 +213,8 @@ func (c *Controller) removeFinalizer(helmRequest *v1alpha1.HelmRequest) error {
 	return nil
 }
 
+// updateHelmRequestPhase update a helmrequest status
+// If this helmrequest not exist already(delete by user, remove the release)
 func (c *Controller) updateHelmRequestPhase(helmRequest *v1alpha1.HelmRequest, phase v1alpha1.HelmRequestPhase) error {
 	request := helmRequest.DeepCopy()
 	request.Status.Phase = phase
@@ -229,6 +231,10 @@ func (c *Controller) updateHelmRequestPhase(helmRequest *v1alpha1.HelmRequest, p
 			klog.Warning("update helm request status conflict, retry...")
 			origin, err := client.AppV1alpha1().HelmRequests(helmRequest.Namespace).Get(helmRequest.Name, metav1.GetOptions{})
 			if err != nil {
+				if apierrors.IsNotFound(err) {
+					klog.Warning("helmrequest not found when trying to update status, delete the release...", helmRequest.Name)
+					return c.deleteHelmRequest(helmRequest)
+				}
 				return err
 			}
 			klog.Warningf("origin status: %+v, current: %+v", origin.Status, request.Status)
