@@ -20,6 +20,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/alauda/captain/pkg/cluster"
+
 	"github.com/alauda/captain/pkg/chartrepo"
 	"github.com/alauda/captain/pkg/util"
 
@@ -79,6 +81,12 @@ func main() {
 	// if err := mgr.Add(helm.NewDefaultIndexSyncer()); err != nil {
 	//	klog.Fatal("add helm repo syncer error: ", err)
 	// }
+
+	// add cluster refresher
+	cr := cluster.NewClusterRefresher(options.ClusterNamespace, cfg)
+	if err := mgr.Add(cr); err != nil {
+		klog.Fatal("add cluster refresher runner error: ", err)
+	}
 
 	// install HelmRequest CRD
 	if err := util.InstallCRDIfRequired(cfg, options.InstallCRD); err != nil {
