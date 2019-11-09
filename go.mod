@@ -10,7 +10,7 @@ replace k8s.io/apiserver => k8s.io/apiserver v0.0.0-20190606205144-71ebb8303503
 
 replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.2.0-beta.3
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20191107075916-b14c367b909c+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20191109031943-6e828b53d17c+incompatible
 
 replace github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
 
