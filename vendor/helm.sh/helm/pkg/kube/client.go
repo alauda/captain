@@ -33,7 +33,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"k8s.io/apimachinery/pkg/api/meta"
+	//"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -311,15 +311,15 @@ func createPatch(target *resource.Info, current runtime.Object) ([]byte, types.P
 	}
 
 	// why we need this...
-	oldAccessor, err := meta.Accessor(current)
-	if err != nil {
-		return nil, types.StrategicMergePatchType, errors.Wrap(err, "get old object meta error")
-	}
-	newAccessor, err := meta.Accessor(target.Object)
-	if err != nil {
-		return nil, types.StrategicMergePatchType, errors.Wrap(err, "get new object meta error")
-	}
-	newAccessor.SetResourceVersion(oldAccessor.GetResourceVersion())
+	//oldAccessor, err := meta.Accessor(current)
+	//if err != nil {
+	//	return nil, types.StrategicMergePatchType, errors.Wrap(err, "get old object meta error")
+	//}
+	//newAccessor, err := meta.Accessor(target.Object)
+	//if err != nil {
+	//	return nil, types.StrategicMergePatchType, errors.Wrap(err, "get new object meta error")
+	//}
+	//newAccessor.SetResourceVersion(oldAccessor.GetResourceVersion())
 
 	// While different objects need different merge types, the parent function
 	// that calls this does not try to create a patch when the data (first

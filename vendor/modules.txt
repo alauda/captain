@@ -374,7 +374,7 @@ gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-beta.3.0.20191107075916-b14c367b909c+incompatible
+# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-beta.3.0.20191109031943-6e828b53d17c+incompatible
 helm.sh/helm/pkg/action
 helm.sh/helm/pkg/repo
 helm.sh/helm/pkg/chart
@@ -610,8 +610,8 @@ k8s.io/client-go/util/exec
 # k8s.io/cloud-provider v0.0.0-20190314002645-c892ea32361a
 k8s.io/cloud-provider/features
 # k8s.io/cluster-registry v0.0.6
-k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1
 k8s.io/cluster-registry/pkg/client/clientset/versioned
+k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1
 k8s.io/cluster-registry/pkg/client/clientset/versioned/typed/clusterregistry/v1alpha1
 k8s.io/cluster-registry/pkg/client/clientset/versioned/scheme
 # k8s.io/klog v0.3.3
