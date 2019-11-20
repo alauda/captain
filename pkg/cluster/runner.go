@@ -33,7 +33,7 @@ func (c *ClusterRefresher) Start(stopCh <-chan struct{}) error {
 
 	opts := metav1.ListOptions{}
 
-	origin, err := clusterClient.ClusterregistryV1alpha1().Clusters(c.ns).List(opts)
+	origin, err := GetClusters(clusterClient, c.ns, opts)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (c *ClusterRefresher) Start(stopCh <-chan struct{}) error {
 	for {
 		time.Sleep(30 * time.Second)
 
-		latest, err := clusterClient.ClusterregistryV1alpha1().Clusters(c.ns).List(opts)
+		latest, err := GetClusters(clusterClient, c.ns, opts)
 		if err != nil {
 			return err
 		}

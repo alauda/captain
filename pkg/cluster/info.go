@@ -1,7 +1,12 @@
 package cluster
 
 import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	"k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	"k8s.io/klog"
 )
 
 const (
@@ -47,4 +52,16 @@ func RestConfigToCluster(config *rest.Config, generatedName string) *Info {
 	i.Endpoint = config.Host
 	i.Name = generatedName
 	return &i
+}
+
+// GetClusters get clusters resourcese. If this resource not exist on cluster, just ignore it.
+func GetClusters(client versioned.Interface, ns string, opts metav1.ListOptions) (*v1alpha1.ClusterList, error) {
+	origin, err := client.ClusterregistryV1alpha1().Clusters(ns).List(opts)
+	if err != nil {
+		if apierrors.IsNotFound(err){
+			klog.Warning("no cluster found:", err)
+			return origin, nil
+		}
+	}
+	return origin, err
 }

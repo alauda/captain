@@ -19,7 +19,7 @@ test:
 	go test  -v -cover -coverprofile=artifacts/coverage.out ./pkg/...
 
 image:
-	DOCKER_BUILDKIT=1 docker build -t captain .
+	docker build -t captain .
 
 push:
 	docker tag captain alaudapublic/captain:latest
