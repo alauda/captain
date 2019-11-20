@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/alauda/captain/pkg/cluster"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
@@ -24,12 +25,20 @@ func (c *Controller) getAllClusters() ([]*cluster.Info, error) {
 	klog.Infof("refresh cluster list from namespace: %s", c.clusterConfig.clusterNamespace)
 
 	opts := v1.ListOptions{}
+	var info []*cluster.Info
+
 	list, err := c.GetClusterClient().ClusterregistryV1alpha1().Clusters(c.clusterConfig.clusterNamespace).List(opts)
 	if err != nil {
-		return nil, err
+		if apierrors.IsNotFound(err) {
+			klog.Warning("No cluster crd found, disable multi cluster support", err)
+			return info, nil
+
+		} else {
+			return nil, err
+		}
+
 	}
 
-	var info []*cluster.Info
 	for _, item := range list.Items {
 		i, err := c.parseClusterInfo(&item)
 		if err != nil {

@@ -29,6 +29,13 @@ helm install \
   jetstack/cert-manager
 ```
 
+If you are using helm 3, the final install step should be 
+
+
+```bash
+ helm install cert-manager  --namespace cert-manager --version v0.8.1 jetstack/cert-manager
+```
+
 
 ## install captain
 ``` bash
@@ -36,3 +43,10 @@ helm repo add alauda https://alauda.github.io/charts
 kubectl create namespace captain # or choose a namespace you likes， just remember to update the args below
 helm install  --name=captain  --namespace=captain --set namespace=captain alauda/captain
 ```
+
+If you are using helm 3, the final install step should be 
+
+```bash
+helm install  captain  --namespace=captain --set namespace=captain alauda/captain
+```
+
