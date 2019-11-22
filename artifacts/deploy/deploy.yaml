@@ -1,37 +1,48 @@
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  labels:
+    app: captain
   name: captain
-  namespace: alauda-system
+  namespace: captain
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service_name: captain
+      app: captain
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:
-        service_name: captain
+        app: captain
     spec:
+      containers:
+        - command:
+            - /captain/captain
+            - -cluster-namespace=captain
+            - -chartrepo-namespace=captain
+          image: alaudapublic/captain
+          imagePullPolicy: IfNotPresent
+          name: captain
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+            requests:
+              cpu: 512m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: certs
+      restartPolicy: Always
       volumes:
-        - configMap:
-            defaultMode: 420
-            name: captain
-          name: config-volume
         - name: certs
           secret:
+            defaultMode: 420
             optional: true
             secretName: captain-webhook-cert
-      containers:
-        - name: captain
-          args:
-            - /captain/captain
-            - -v=5
-          image: index.alauda.cn/alaudaorg/captain:latest
-          imagePullPolicy: Always
-          volumeMounts:
-          - mountPath: /tmp/repositories.yaml
-            name: config-volume
-            subPath: repositories.yaml
-          - mountPath: /tmp/k8s-webhook-server/serving-certs
-            name: certs
+

@@ -1,0 +1,12 @@
+apiVersion: skaffold/v1
+kind: Config
+metadata:
+  name: captain
+build:
+  artifacts:
+  - image: alaudapublic/captain
+deploy:
+  kubectl:
+    manifests:
+    - artifacts/deploy/deploy.yaml
+
