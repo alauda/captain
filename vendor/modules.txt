@@ -374,7 +374,7 @@ gopkg.in/square/go-jose.v2/json
 gopkg.in/square/go-jose.v2/jwt
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-beta.3.0.20191125103652-9dd70c093497+incompatible
+# helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible => github.com/alauda/helm v3.0.0-beta.3.0.20191127074124-774bd62af3fa+incompatible
 helm.sh/helm/internal/experimental/registry
 helm.sh/helm/internal/ignore
 helm.sh/helm/internal/resolver
