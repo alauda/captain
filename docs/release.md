@@ -41,7 +41,7 @@ status:
   status: deployed
 ```
 
-From the internal view, it also have some improvements compares to the old version:
+From the internal view, it also has some improvements compares to the old version:
 
 * Use separated filed to store helm data
 * Move some info the to `status` filed, which is more reasonable
