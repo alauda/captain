@@ -67,7 +67,12 @@ For the detailed explain and advanced usage, please check the documentation belo
 * Data migration tool from Helm2 release to Helm3 Release
 
 
-## Related Project
+## Captain Releated Projects
+* [kubectl-captain](https://github.com/alauda/kubectl-captain): a kubectl plugin for captain
+* [captain-test-charts](https://github.com/alauda/captain-test-charts): test charts for captain
+
+
+## Related Projects
 
 * [flux](https://github.com/fluxcd/flux): flux have a similar controller based on Helm2
 
