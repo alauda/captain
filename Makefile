@@ -18,6 +18,9 @@ lint:
 test:
 	go test  -v -cover -coverprofile=artifacts/coverage.out ./pkg/...
 
+int:
+	bash tests.sh
+
 image:
 	docker build -t captain .
 
