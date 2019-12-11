@@ -4,7 +4,7 @@ COPY . $GOPATH/src/github.com/alauda/captain
 WORKDIR $GOPATH/src/github.com/alauda/captain
 RUN make build
 
-FROM index.alauda.cn/alaudaorg/alaudabase-alpine-run:alpine3.9.3
+FROM index.alauda.cn/alaudaorg/alaudabase-alpine-run:alpine3.10
 
 WORKDIR /captain
 
