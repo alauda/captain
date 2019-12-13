@@ -24,7 +24,7 @@ import (
 
 const (
 	// FinalizerName is the finalizer name we append to each HelmRequest resource
-	FinalizerName = "captain.alauda.io"
+	FinalizerName = "captain.cpaas.io"
 )
 
 // +genclient

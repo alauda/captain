@@ -58,7 +58,7 @@ func RestConfigToCluster(config *rest.Config, generatedName string) *Info {
 func GetClusters(client versioned.Interface, ns string, opts metav1.ListOptions) (*v1alpha1.ClusterList, error) {
 	origin, err := client.ClusterregistryV1alpha1().Clusters(ns).List(opts)
 	if err != nil {
-		if apierrors.IsNotFound(err){
+		if apierrors.IsNotFound(err) {
 			klog.Warning("no cluster found:", err)
 			return origin, nil
 		}
