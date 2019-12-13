@@ -2,6 +2,7 @@ package kube
 
 import (
 	"io"
+
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 
@@ -33,12 +34,12 @@ func New(getter genericclioptions.RESTClientGetter) *Client {
 	}
 }
 
-
 // Build validates for Kubernetes objects and returns resource Infos from a io.Reader.
 func (c *Client) Build(reader io.Reader) (kube.ResourceList, error) {
 	result, err := c.Client.Build(reader)
 	if err != nil {
 		klog.Warning("build resources error: ", err)
+		return result, err
 
 		// if strings.Contains(err.Error(), "apiVersion") && strings.Contains(err.Error(), "is not available") {
 		//	klog.Warning("encountered apiVersion not found it, ignore it: ", err)
@@ -47,7 +48,6 @@ func (c *Client) Build(reader io.Reader) (kube.ResourceList, error) {
 	}
 	return result, nil
 }
-
 
 // Create plan to support replace.... hold on...
 func (c *Client) Create(resources kube.ResourceList) (*kube.Result, error) {

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #/usr/bin/env bash
 
 NORMAL=$(tput sgr0)

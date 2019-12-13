@@ -18,8 +18,6 @@ replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
-replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20190915014518-6c1be05f7d6e
-
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 
 replace gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.0.1
@@ -31,7 +29,7 @@ require (
 	github.com/Masterminds/sprig v2.18.0+incompatible // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446
-	github.com/alauda/helm-crds v0.0.0-20190904040405-5d13ef317cd8
+	github.com/alauda/helm-crds v0.0.0-20191213075648-06c92685470a
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/bugsnag/bugsnag-go v1.5.2 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect

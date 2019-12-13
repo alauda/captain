@@ -8,7 +8,7 @@ const (
 	LeaderLockName = "captain-controller-lock"
 
 	// FinalizerName is the finalizer name we append to each HelmRequest resource
-	FinalizerName = "captain.alauda.io"
+	FinalizerName = "captain.cpaas.io"
 
 	// ProjectKey is the annotation key for project
 	ProjectKey = "alauda.io/project"
