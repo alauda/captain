@@ -30,10 +30,10 @@ cd /tmp/captain-test || exit
 ## Test chartrepo
 yellow "[0] TEST CHARTREPO"
 # for mac add a .bak...
-sed  -i .bak 's/alauda-system/captain/g' chartrepo.yaml
-kubectl apply -f chartrepo.yaml -n captain
+sed  -i .bak 's/alauda-system/captain-system/g' chartrepo.yaml
+kubectl apply -f chartrepo.yaml -n captain-system
 
-until [ $(kubectl get ctr -n captain |grep captain-test  | awk '{print $3}') == "Synced" ]
+until [ $(kubectl get ctr -n captain-system | grep captain-test  | awk '{print $3}') == "Synced" ]
 do
     green "Wating chartrepo to be ready...."
     sleep 1
@@ -65,7 +65,7 @@ done
 yellow "HelmRequest basic-nginx-ingress synced"
 
 
-kubectl delete -f chartrepo.yaml
+kubectl delete ctr  captain-test -n captain-system
 kubectl delete -f hr/basic/
 kubectl delete -f hr/dep/
 rm -rf /tmp/captain-test

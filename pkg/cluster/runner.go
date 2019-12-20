@@ -54,6 +54,4 @@ func (c *ClusterRefresher) Start(stopCh <-chan struct{}) error {
 
 	}
 
-	return nil
-
 }
