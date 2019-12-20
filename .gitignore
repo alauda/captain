@@ -3,3 +3,4 @@
 .helm/
 .kube/
 artifacts/coverage.out
+cover.out

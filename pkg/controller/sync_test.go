@@ -30,7 +30,7 @@ func TestHelmRequestDeepCopyHash(t *testing.T) {
 			InstallToAllClusters: true,
 			Namespace:            "default",
 			ReleaseName:          "cpatain-test-demo",
-			HelmValues:           v1alpha1.HelmValues{v},
+			HelmValues:           v1alpha1.HelmValues{Values: v},
 			Version:              "1.2.1",
 		},
 	}
