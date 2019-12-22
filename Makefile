@@ -1,34 +1,97 @@
-VERSION := $(shell git describe --always --long --dirty)
-mod:
-	GO111MODULE=on go mod tidy
-	GO111MODULE=on go mod vendor
 
-build:
-	GO111MODULE=on CGO_ENABLED=0 go build -mod vendor -ldflags "-w -s -X main.version=${VERSION}" -v -o captain
+# Image URL to use all building/pushing image targets
+IMG ?= captain:latest
+# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
+CRD_OPTIONS ?= "crd:trivialVersions=true"
+
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+
+all: manager
 
 
-fmt:
-	find ./pkg -name \*.go  | xargs goimports -w
-	goimports -w main.go
+# Run tests
+test: generate fmt vet manifests
+	go test ./... -coverprofile cover.out
 
-lint:
-	golangci-lint run -c hack/ci/golangci.yml
-	revive -exclude pkg/apis/... -exclude pkg/client/... -config hack/ci/revive.toml -formatter friendly ./pkg/...
-
-test:
-	go test  -v -cover -coverprofile=artifacts/coverage.out ./pkg/...
-
-int:
+int-test:
 	bash tests.sh
 
-image:
-	docker build -t captain .
+# Build manager binary
+manager: generate fmt vet
+	go build -o bin/manager main.go
 
-push:
-	docker tag captain alaudapublic/captain:latest
-	docker push alaudapublic/captain:latest
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet manifests
+	go run ./main.go
 
-code-gen:
-	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh all "github.com/alauda/captain/pkg/client" "github.com/alauda/captain/pkg/apis" app:v1alpha1
+# Install CRDs into a cluster
+install: manifests
+	kustomize build config/crd | kubectl apply -f -
 
-check: fmt build lint test
+# Uninstall CRDs from a cluster
+uninstall: manifests
+	kustomize build config/crd | kubectl delete -f -
+
+uninstall-all: 
+	bash hack/uninstall.sh
+
+
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests
+	cd config/manager && kustomize edit set image controller=${IMG}
+	kustomize build config/default | kubectl apply -f -
+
+
+restart:
+	kubectl scale deploy captain-controller-manager -n captain-system --replicas=0
+	kubectl scale deploy captain-controller-manager -n captain-system --replicas=1
+
+
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+# Run go fmt against code
+fmt:
+	go fmt ./...
+
+# Run go vet against code
+vet:
+	go vet ./...
+
+
+
+
+# Generate code
+generate: controller-gen
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
+
+# Build the docker image
+docker-build: test
+	docker build . -t ${IMG}
+
+# Push the docker image
+docker-push:
+	docker push ${IMG}
+
+# find or download controller-gen
+# download controller-gen if necessary
+controller-gen:
+ifeq (, $(shell which controller-gen))
+	@{ \
+	set -e ;\
+	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.4 ;\
+	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	}
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+else
+CONTROLLER_GEN=$(shell which controller-gen)
+endif
