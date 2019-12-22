@@ -4,6 +4,7 @@
 resources:
 - bases/chartrepo.yaml
 - bases/chart.yaml
+
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

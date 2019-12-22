@@ -13,6 +13,7 @@ endif
 
 all: manager
 
+
 # Run tests
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
@@ -62,6 +63,9 @@ fmt:
 # Run go vet against code
 vet:
 	go vet ./...
+
+
+
 
 # Generate code
 generate: controller-gen

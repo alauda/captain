@@ -100,8 +100,6 @@ yellow "Helmrequest ghost-bad-cr failed..."
 
 
 
-
-
 kubectl delete ctr  captain-test -n captain-system
 kubectl delete -f hr/basic/
 kubectl delete -f hr/dep/
