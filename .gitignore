@@ -4,3 +4,4 @@
 .kube/
 artifacts/coverage.out
 cover.out
+bin/manager

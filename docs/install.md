@@ -40,13 +40,13 @@ If you are using helm 3, the final install step should be
 ## install captain
 ``` bash
 helm repo add alauda https://alauda.github.io/charts
-kubectl create namespace captain # or choose a namespace you like， just remember to update the args below
-helm install  --name=captain  --namespace=captain --set namespace=captain alauda/captain
+kubectl create namespace captain-system # or choose a namespace you like， just remember to update the args below
+helm install  --name=captain  --namespace=captain-system  alauda/captain
 ```
 
 If you are using helm 3, the final install step should be 
 
 ```bash
-helm install  captain  --namespace=captain --set namespace=captain alauda/captain
+helm install  captain  --namespace=captain-system  alauda/captain
 ```
 

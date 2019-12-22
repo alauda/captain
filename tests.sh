@@ -21,6 +21,10 @@ function yellow() {
   echo -e "$YELLOW$*$NORMAL"
 }
 
+
+kubectl create ns captain-system
+
+
 rm -rf /tmp/captain-test
 
 git clone https://github.com/alauda/captain-test-charts /tmp/captain-test
@@ -65,7 +69,41 @@ done
 yellow "HelmRequest basic-nginx-ingress synced"
 
 
+## Test crd-install
+yellow "[3] TEST CRD-INSTALL"
+kubectl apply -f hr/crd-cr/cr.yaml
+
+until [ $(kubectl get hr  tomcat-crd-install -o json | jq -r .status.phase) == "Synced" ]
+do
+  green "Wating for hr/tomcat-crd-install synced..."
+  sleep 1
+done
+
+yellow "HelmRequest tomcat-crd-install synced..."
+
+# delete the crd
+kubectl delete -f hr/crd-cr/cr.yaml
+# kubectl delete crd 
+kubectl delete crd crontabs.stable.example.com
+
+## Test cr install (without CRD)
+yellow "[4] TEST ONLY CR INSTALL"
+kubectl apply -f hr/bad-cr/bad-cr.yaml
+
+until [ $(kubectl get hr  ghost-bad-cr -o json | jq -r .status.phase) == "Failed" ]
+do
+  green "Wating for hr/ghost-bad-cr faild..."
+  sleep 1
+done
+
+yellow "Helmrequest ghost-bad-cr failed..."
+
+
+
+
+
 kubectl delete ctr  captain-test -n captain-system
 kubectl delete -f hr/basic/
 kubectl delete -f hr/dep/
+kubectl delete -f hr/bad-cr
 rm -rf /tmp/captain-test

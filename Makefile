@@ -17,6 +17,9 @@ all: manager
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
 
+int-test:
+	bash tests.sh
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager main.go
@@ -32,6 +35,10 @@ install: manifests
 # Uninstall CRDs from a cluster
 uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
+
+uninstall-all: 
+	bash hack/uninstall.sh
+
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests

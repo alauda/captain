@@ -13,14 +13,16 @@ spec:
   template:
     spec:
       containers:
-        - name: {{ .Values.name }}
+        - name: {{ .Release.Name }}
           image: "{{ .Values.global.images.captain.repository }}:{{ .Values.global.images.captain.tag }}"
           terminationMessagePolicy: File
           imagePullPolicy: {{ .Values.image.policy }}
           command:
-            - /captain/captain
-            - -cluster-namespace={{ .Values.namespace }}
-            - -chartrepo-namespace={{ .Values.namespace }}
+            - /manager
+          args:
+            - "--cluster-namespace={{ .Release.Namespace }}"
+            - "--chartrepo-namespace={{ .Release.Namespace }}"
+            - "--metrics-addr=127.0.0.1:6060"
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           volumeMounts:
@@ -36,4 +38,4 @@ spec:
         app: captain
 metadata:
   name: captain
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}

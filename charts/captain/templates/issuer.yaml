@@ -4,6 +4,6 @@ metadata:
   labels:
     app: captain
   name: captain-selfsigned-issuer
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   selfSigned: {}

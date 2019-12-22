@@ -2,14 +2,14 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    certmanager.k8s.io/inject-ca-from: {{ .Values.namespace }}/captain-serving-cert
+    certmanager.k8s.io/inject-ca-from: {{ .Release.Namespace }}/captain-serving-cert
   name: captain
 webhooks:
   - clientConfig:
       caBundle: Cg==
       service:
         name: captain
-        namespace: {{ .Values.namespace }}
+        namespace: {{ .Release.Namespace  }}
         path: /mutate
     failurePolicy: Fail
     name: mutate-helmrequest.app.alauda.io
