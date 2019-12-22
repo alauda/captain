@@ -1,0 +1,47 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+  - clientConfig:
+      caBundle: Cg==
+      service:
+        name: webhook-service
+        namespace: system
+        path: /validate
+    failurePolicy: Fail
+    name: validate-helmrequest.app.alauda.io
+    rules:
+      - apiGroups:
+          - app.alauda.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - helmrequests
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mutating-webhook-configuration
+webhooks:
+  - clientConfig:
+      caBundle: Cg==
+      service:
+        name: webhook-service
+        namespace: system
+        path: /mutate
+    failurePolicy: Fail
+    name: mutate-helmrequest.app.alauda.io
+    rules:
+      - apiGroups:
+          - app.alauda.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - helmrequests

@@ -2,10 +2,9 @@ package config
 
 import (
 	"flag"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/alauda/captain/pkg/util"
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 //Options contains all the options for captain
@@ -51,10 +50,10 @@ func (opt *Options) setDefaults() {
 func (opt *Options) BindFlags() {
 	opt.setDefaults()
 
-	flag.StringVar(&opt.KubeConfig, "kubeconfig", "",
-		"Path to a kubeconfig. Only required if out-of-cluster.")
-	flag.StringVar(&opt.MasterURL, "master", "",
-		"The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	//flag.StringVar(&opt.KubeConfig, "old-kubeconfig", "",
+	//	"Path to a kubeconfig. Only required if out-of-cluster.")
+	// flag.StringVar(&opt.MasterURL, "old-master", "",
+	//	"The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.BoolVar(&opt.PrintVersion, "version", false,
 		"Print version")
 	flag.BoolVar(&opt.InstallCRD, "install-crd", true,
@@ -69,14 +68,14 @@ func (opt *Options) BindFlags() {
 	// this flag is mainly used to enable local test. If enabled, the controller will also
 	// do a simple check to see if it's running in a kubernetes cluster. If passed,
 	// then the leader election is finally turned on
-	flag.BoolVar(&opt.LeaderElection, "enable-leader-election", true,
-		"Enable leader election")
+	// flag.BoolVar(&opt.LeaderElection, "old-enable-leader-election", true,
+	//		"Enable leader election")
 	flag.BoolVar(&opt.EnableValidateWebhook, "enable-validating-webhook", true,
 		"Enable validating webhook")
 	flag.BoolVar(&opt.InstallStableRepo, "install-stable-repo", true,
 		"Install helm stable repo")
 
-	flag.StringVar(&opt.MetricsBindAddress, "metrics-bind-address", ":6060",
-		"Setup bind address for metrics server, use \"\" to disable it")
+	// flag.StringVar(&opt.MetricsBindAddress, "old-metrics-bind-address", ":6060",
+	//	"Setup bind address for metrics server, use \"\" to disable it")
 
 }

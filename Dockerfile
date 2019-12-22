@@ -1,17 +1,30 @@
-FROM golang:1.12.9
+# Build the manager binary
+FROM golang:1.13 as builder
 
-COPY . $GOPATH/src/github.com/alauda/captain
-WORKDIR $GOPATH/src/github.com/alauda/captain
-RUN make build
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+ENV GOPROXY https://goproxy.cn/
+RUN go mod download
 
-FROM index.alauda.cn/alaudaorg/alaudabase-alpine-run:alpine3.10
+# Copy the go source
+COPY main.go main.go
+COPY api/ api/
+COPY controllers/ controllers/
+COPY pkg/ pkg/
 
-WORKDIR /captain
+# Build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
 
-COPY --from=0 /go/src/github.com/alauda/captain/captain /captain/
-COPY artifacts/helm/repositories.yaml /root/.config/helm/
-RUN chmod a+x /captain/captain
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+# FROM gcr.azk8s.cn/distroless/static:latest
+FROM alpine:3.11
+WORKDIR /
+COPY --from=builder /workspace/manager .
+# USER nonroot:nonroot
 
-
-# ENTRYPOINT ["/captain/run.sh"]
-CMD ["/captain/captain"]
+ENTRYPOINT ["/manager"]

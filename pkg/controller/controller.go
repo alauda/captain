@@ -24,7 +24,6 @@ import (
 
 	"github.com/alauda/captain/pkg/config"
 	"github.com/alauda/captain/pkg/util"
-	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -73,9 +72,6 @@ type Controller struct {
 	helmRequestLister listers.HelmRequestLister
 	helmRequestSynced cache.InformerSynced
 
-	chartRepoSynced cache.InformerSynced
-	chartRepoLister listers.ChartRepoLister
-
 	// ClusterCache is used to store Cluster resource
 	ClusterCache *commoncache.Cache
 
@@ -84,8 +80,7 @@ type Controller struct {
 	// means we can ensure we only process a fixed amount of resources at a
 	// time, and makes it easy to ensure we are never processing the same item
 	// simultaneously in two different workers.
-	workQueue          workqueue.RateLimitingInterface
-	chartRepoWorkQueue workqueue.RateLimitingInterface
+	workQueue workqueue.RateLimitingInterface
 
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
@@ -120,10 +115,10 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 
 	// kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	appInformerFactory := informers.NewSharedInformerFactory(appClient, time.Second*30)
-	chartRepoInformerFactory := informers.NewSharedInformerFactoryWithOptions(appClient, time.Second*30, informers.WithNamespace(opt.ChartRepoNamespace))
+	// chartRepoInformerFactory := informers.NewSharedInformerFactoryWithOptions(appClient, time.Second*30, informers.WithNamespace(opt.ChartRepoNamespace))
 
 	informer := appInformerFactory.App().V1alpha1().HelmRequests()
-	repoInformer := chartRepoInformerFactory.App().V1alpha1().ChartRepos()
+	// repoInformer := chartRepoInformerFactory.App().V1alpha1().ChartRepos()
 
 	controller := &Controller{
 		kubeClient:   kubeClient,
@@ -133,14 +128,14 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 			clusterClient:     clusterClient,
 			globalClusterName: opt.GlobalClusterName,
 		},
-		restConfig:         cfg,
-		recorder:           mgr.GetEventRecorderFor(util.ComponentName),
-		helmRequestLister:  informer.Lister(),
-		chartRepoLister:    repoInformer.Lister(),
-		helmRequestSynced:  informer.Informer().HasSynced,
-		chartRepoSynced:    repoInformer.Informer().HasSynced,
-		workQueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "HelmRequests"),
-		chartRepoWorkQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ChartRepos"),
+		restConfig:        cfg,
+		recorder:          mgr.GetEventRecorderFor(util.ComponentName),
+		helmRequestLister: informer.Lister(),
+		// chartRepoLister:    repoInformer.Lister(),
+		helmRequestSynced: informer.Informer().HasSynced,
+		// chartRepoSynced:    repoInformer.Informer().HasSynced,
+		workQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "HelmRequests"),
+		// chartRepoWorkQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ChartRepos"),
 		// refresh frequently
 		ClusterCache: commoncache.New(1*time.Minute, 5*time.Minute),
 
@@ -155,7 +150,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 	klog.Info("Setting up event handlers")
 	// Set up an event handler for when HelmRequest resources change
 	informer.Informer().AddEventHandler(controller.newHelmRequestHandler())
-	repoInformer.Informer().AddEventHandler(controller.newChartRepoHandler())
+	// repoInformer.Informer().AddEventHandler(controller.newChartRepoHandler())
 
 	klog.V(7).Infof("cluster rest config is : %+v", cfg)
 
@@ -166,7 +161,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 
 	// fuck examples, this should after init controller
 	appInformerFactory.Start(stopCh)
-	chartRepoInformerFactory.Start(stopCh)
+	// chartRepoInformerFactory.Start(stopCh)
 
 	return controller, mgr.Add(controller)
 }
@@ -183,14 +178,14 @@ func (c *Controller) GetClusterClient() clusterclientset.Interface {
 func (c *Controller) Start(stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workQueue.ShutDown()
-	defer c.chartRepoWorkQueue.ShutDown()
+	// defer c.chartRepoWorkQueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
 	klog.Info("Starting HelmRequest controller")
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.helmRequestSynced, c.chartRepoSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.helmRequestSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -198,7 +193,7 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	// Launch two workers to process HelmRequest resources
 	for i := 0; i < 2; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
-		go wait.Until(c.runChartRepoWorker, time.Second, stopCh)
+		// go wait.Until(c.runChartRepoWorker, time.Second, stopCh)
 	}
 
 	// starts other clusters
@@ -224,114 +219,6 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 func (c *Controller) runWorker() {
 	for c.processNextWorkItem() {
 	}
-}
-
-func (c *Controller) runChartRepoWorker() {
-	for c.processNextChartRepo() {
-	}
-}
-
-// processNextWorkItem will read a single work item off the chartRepoWorkQueue and
-// attempt to process it, by calling the syncHandler.
-func (c *Controller) processNextChartRepo() bool {
-	obj, shutdown := c.chartRepoWorkQueue.Get()
-
-	if shutdown {
-		return false
-	}
-
-	// We wrap this block in a func so we can defer c.chartRepoWorkQueue.Done.
-	err := func(obj interface{}) error {
-		// We call Done here so the chartRepoWorkQueue knows we have finished
-		// processing this item. We also must remember to call Forget if we
-		// do not want this work item being re-queued. For example, we do
-		// not call Forget if a transient error occurs, instead the item is
-		// put back on the chartRepoWorkQueue and attempted again after a back-off
-		// period.
-		defer c.chartRepoWorkQueue.Done(obj)
-		var key string
-		var ok bool
-		// We expect strings to come off the chartRepoWorkQueue. These are of the
-		// form namespace/name. We do this as the delayed nature of the
-		// chartRepoWorkQueue means the items in the informer cache may actually be
-		// more up to date that when the item was initially put onto the
-		// chartRepoWorkQueue.
-		if key, ok = obj.(string); !ok {
-			// As the item in the chartRepoWorkQueue is actually invalid, we call
-			// Forget here else we'd go into a loop of attempting to
-			// process a work item that is invalid.
-			c.chartRepoWorkQueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in chartRepoWorkQueue but got %#v", obj))
-			return nil
-		}
-		// Start the syncHandler, passing it the namespace/name string of the
-		// HelmRequest resource to be synced.
-		if err := c.syncChartRepoHandler(key); err != nil {
-			// Put the item back on the chartRepoWorkQueue to handle any transient errors.
-			c.chartRepoWorkQueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing chartrepo '%s': %s, requeuing", key, err.Error())
-		}
-		// Finally, if no error occurs we Forget this item so it does not
-		// get queued again until another change happens.
-		c.chartRepoWorkQueue.Forget(obj)
-		klog.Infof("Successfully synced '%s'", key)
-		return nil
-	}(obj)
-
-	if err != nil {
-		utilruntime.HandleError(err)
-		return true
-	}
-
-	return true
-}
-
-// syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the HelmRequest resource
-// with the current status of the resource.
-func (c *Controller) syncChartRepoHandler(key string) error {
-	// Convert the namespace/name string into a distinct namespace and name
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
-		return nil
-	}
-	klog.V(9).Infof("")
-
-	// Get the HelmRequest resource with this namespace/name
-	chartRepo, err := c.chartRepoLister.ChartRepos(namespace).Get(name)
-	if err != nil {
-		// The HelmRequest resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("repo '%s' in work queue no longer exists", key))
-			return nil
-		}
-
-		return err
-	}
-
-	if !chartRepo.DeletionTimestamp.IsZero() {
-		klog.Infof("ChartRepo has not nil DeletionTimestamp, starting to delete it: %s", chartRepo.Name)
-		return nil
-	}
-
-	c.syncChartRepo(chartRepo)
-
-	return nil
-}
-
-// enqueueHelmRequest takes a HelmRequest resource and converts it into a namespace/name
-// string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than HelmRequest.
-func (c *Controller) enqueueChartRepo(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-	c.chartRepoWorkQueue.Add(key)
 }
 
 // processNextWorkItem will read a single work item off the workQueue and

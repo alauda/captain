@@ -202,7 +202,7 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 // removeFinalizer remove all the finalizers of this HelmRequest
 func (c *Controller) removeFinalizer(helmRequest *v1alpha1.HelmRequest) error {
 	// captain.alauda.io is the old finalizer, this should provide some backword compatibility
-	if funk.Contains(helmRequest.Finalizers, util.FinalizerName)  || funk.Contains(helmRequest.Finalizers, "captain.alauda.io"){
+	if funk.Contains(helmRequest.Finalizers, util.FinalizerName) || funk.Contains(helmRequest.Finalizers, "captain.alauda.io") {
 		klog.Infof("found finalizers for helmrequest: %s", helmRequest.Name)
 		data := `{"metadata":{"finalizers":null}}`
 		// ? only patch can work?
