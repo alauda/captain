@@ -1,0 +1,259 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: helmrequests.app.alauda.io
+spec:
+  group: app.alauda.io
+  version: v1alpha1
+  names:
+    kind: HelmRequest
+    listKind: HelmRequestList
+    plural: helmrequests
+    singular: helmrequest
+    shortNames:
+      - hr
+  additionalPrinterColumns:
+    - name: Chart
+      type: string
+      description: The chart of this HelmRequest
+      JSONPath: .spec.chart
+    - name: Version
+      type: string
+      description: Version of this chart
+      JSONPath: .spec.version
+    - name: Namespace
+      type: string
+      description: The namespace which the chart deployed to
+      JSONPath: .spec.namespace
+    - name: AllCluster
+      type: boolean
+      description: Is this chart will be installed to all cluster
+      JSONPath: .spec.installToAllClusters
+    - name: Phase
+      type: string
+      description: The phase of this HelmRequest
+      JSONPath: .status.phase
+    - name: Age
+      type: date
+      JSONPath: .metadata.creationTimestamp
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    # openAPIV3Schema is the schema for validating custom objects.
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+            - chart
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: chartrepos.app.alauda.io
+  annotations:
+    "helm.sh/hook": crd-install
+spec:
+  group: app.alauda.io
+  version: v1alpha1
+  names:
+    kind: ChartRepo
+    listKind: ChartRepoList
+    plural: chartrepos
+    singular: chartrepo
+    shortNames:
+      - ctr
+  additionalPrinterColumns:
+    - name: URL
+      type: string
+      description: The url of this chart repo
+      JSONPath: .spec.url
+    - name: Phase
+      type: string
+      description: The phase of this ChartRepo
+      JSONPath: .status.phase
+    - name: Age
+      type: date
+      JSONPath: .metadata.creationTimestamp
+  scope: Namespaced
+  validation:
+    # openAPIV3Schema is the schema for validating custom objects.
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+            - url
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+    name: charts.app.alauda.io
+spec:
+    group: app.alauda.io
+    version: v1alpha1
+    names:
+        kind: Chart
+        listKind: ChartList
+        plural: charts
+        singular: chart
+    additionalPrinterColumns:
+        - name: Version
+          type: string
+          JSONPath: .spec.versions[0].version
+        - name: AppVersion
+          type: string
+          JSONPath: .spec.versions[0].appVersion
+        - name: Age
+          type: date
+          JSONPath: .metadata.creationTimestamp
+    scope: Namespaced
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: captain-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: captain-webhook
+      namespace: captain-system
+      path: /mutate
+  failurePolicy: Fail
+  name: mutate-helmrequest.app.alauda.io
+  namespaceSelector: {}
+  rules:
+  - apiGroups:
+    - app.alauda.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - helmrequests
+    scope: '*'
+  sideEffects: Unknown
+  timeoutSeconds: 30
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+  name: captain-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: captain-webhook
+      namespace: captain-system
+      path: /validate
+  failurePolicy: Fail
+  name: validate-helmrequest.app.alauda.io
+  namespaceSelector: {}
+  rules:
+  - apiGroups:
+    - app.alauda.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - helmrequests
+    scope: '*'
+  sideEffects: Unknown
+  timeoutSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: captain-webhook
+  labels:
+    service_name: captain
+spec:
+  ports:
+    - port: 443
+      targetPort: 9443
+      name: webhook
+    - port: 6060
+      targetPort: 6060
+      name: metrics
+  selector:
+    app: captain
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: captain
+  name: captain-controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: captain
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: captain
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=0.0.0.0:6060
+        - --enable-leader-election
+        - --cluster-namespace=$(KUBERNETES_NAMESPACE)
+        - --chartrepo-namespace=$(KUBERNETES_NAMESPACE)
+        command:
+        - /manager
+        env:
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: index.alauda.cn/claas/captain:v0.9.4
+        imagePullPolicy: IfNotPresent
+        name: manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - sh
+        - /generate_certificate.sh
+        - --service
+        - captain-webhook
+        - --vwebhook
+        - captain-validating-webhook-configuration
+        - --mwebhook
+        - captain-mutating-webhook-configuration
+        - --secret
+        - captain-webhook-cert
+        - --namespace
+        - $(KUBERNETES_NAMESPACE)
+        env:
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: index.alauda.cn/claas/captain-cert-init
+        imagePullPolicy: IfNotPresent
+        name: cert-init
+---

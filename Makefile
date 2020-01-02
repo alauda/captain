@@ -35,6 +35,9 @@ install: manifests
 
 # Uninstall CRDs from a cluster
 uninstall: manifests
+	kubectl delete mutatingwebhookconfiguration captain-mutating-webhook-configuration
+	kubectl delete validatingwebhookconfiguration.admissionregistration.k8s.io captain-validating-webhook-configuration
+	kubectl delete ns captain-system
 	kustomize build config/crd | kubectl delete -f -
 
 uninstall-all: 
@@ -43,6 +46,7 @@ uninstall-all:
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
+	kubectl create ns captain-system
 	cd config/manager && kustomize edit set image controller=${IMG}
 	kustomize build config/default | kubectl apply -f -
 
@@ -73,11 +77,13 @@ generate: controller-gen
 
 # Build the docker image
 docker-build: test
+	docker build -t captain-cert-init -f Dockerfile.init .
 	docker build . -t ${IMG}
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker tag captain index.alauda.cn/claas/captain
+	docker push index.alauda.cn/claas/captain
 
 # find or download controller-gen
 # download controller-gen if necessary
