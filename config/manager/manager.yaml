@@ -22,6 +22,16 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
+      initContainers:
+        - name: cert-init
+          image: captain-cert-init
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command: ["sh", "/generate_certificate.sh", "--service", "captain-webhook", "--vwebhook", "captain-validating-webhook-configuration", "--mwebhook", "captain-mutating-webhook-configuration", "--secret", "captain-webhook-cert", "--namespace", "$(KUBERNETES_NAMESPACE)"]
       containers:
       - command:
         - /manager
@@ -30,6 +40,11 @@ spec:
         image: captain:latest
         imagePullPolicy: IfNotPresent
         name: manager
+        env:
+          - name: KUBERNETES_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
         resources:
           limits:
             cpu: 100m

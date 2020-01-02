@@ -18,6 +18,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -32,6 +34,8 @@ import (
 	"github.com/alauda/captain/pkg/controller"
 	"github.com/alauda/captain/pkg/webhook"
 	alaudaiov1alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -103,6 +107,25 @@ func main() {
 	// init helm dirs
 	helm.Init()
 
+	// read certs
+	c := kubernetes.NewForConfigOrDie(mgr.GetConfig())
+	s, err := c.CoreV1().Secrets(os.Getenv("KUBERNETES_NAMESPACE")).Get("captain-webhook-cert", metav1.GetOptions{})
+	if err != nil {
+		setupLog.Error(err, "read secret data error")
+		os.Exit(1)
+	}
+	if err := createCerts(s); err != nil {
+		setupLog.Error(err, "create webhook cert files error")
+		os.Exit(1)
+	}
+
+	// update webhook if cert not injected
+	// does not know why the script not working.
+	if err := webhook.InjectCertToWebhook(s.Data["caBundle"], mgr.GetConfig()); err != nil {
+		setupLog.Error(err, "inject data to webhook error")
+		os.Exit(1)
+	}
+
 	// add cluster refresher
 	cr := cluster.NewClusterRefresher(options.ClusterNamespace, mgr.GetConfig())
 	if err := mgr.Add(cr); err != nil {
@@ -147,4 +170,28 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func createCerts(s *corev1.Secret) error {
+
+	path := "/tmp/k8s-webhook-server/serving-certs"
+
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return err
+	}
+
+	setupLog.Info("Create serving-certs dir")
+
+	if err := ioutil.WriteFile(path+"/"+"tls.crt", s.Data["tls.crt"], 0420); err != nil {
+		return err
+
+	}
+
+	if err := ioutil.WriteFile(path+"/"+"tls.key", s.Data["tls.key"], 0420); err != nil {
+		return err
+
+	}
+
+	return nil
+
 }
