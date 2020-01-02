@@ -82,7 +82,8 @@ docker-build: test
 
 # Push the docker image
 docker-push:
-	docker push alaudapublic/captain
+	docker tag captain index.alauda.cn/claas/captain
+	docker push index.alauda.cn/claas/captain
 
 # find or download controller-gen
 # download controller-gen if necessary

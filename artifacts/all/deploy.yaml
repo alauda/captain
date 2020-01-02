@@ -222,7 +222,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: alaudapublic/captain:v0.9.4
+        image: index.alauda.cn/claas/captain:v0.9.4
         imagePullPolicy: IfNotPresent
         name: manager
         resources:
@@ -253,7 +253,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: alaudapublic/captain-cert-init
+        image: index.alauda.cn/claas/captain-cert-init
         imagePullPolicy: IfNotPresent
         name: cert-init
 ---
