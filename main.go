@@ -83,6 +83,7 @@ func main() {
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "captain-controller-lock",
 		Port:               9443,
 		SyncPeriod:         &rp,
 	})
