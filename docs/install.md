@@ -6,3 +6,10 @@ kubectl create clusterrolebinding captain --serviceaccount=captain-system:defaul
 kubectl apply -n captain-system -f https://raw.githubusercontent.com/alauda/captain/master/artifacts/all/deploy.yaml
 ```
 
+
+
+## Uninstall
+```bash
+kubectl delete -n  captain-system -f https://raw.githubusercontent.com/alauda/captain/master/artifacts/all/deploy.yaml
+kubectl delete ns captain-system
+```
