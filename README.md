@@ -58,12 +58,15 @@ For the detailed explain and advanced usage, please check the documentation belo
 * [Chart CRD](./docs/chart.md)
 
 
+## SDK
+* [Golang](https://github.com/alauda/helm-crds): also contains the CRD definition
+
+
 
 ## Future Plans
 
 * Release Version secret support
 * Repo proxy support
-* Rollback/Update kubectl plugin 
 * Data migration tool from Helm2 release to Helm3 Release
 
 
