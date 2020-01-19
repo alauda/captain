@@ -2,6 +2,7 @@ package kube
 
 import (
 	"io"
+	"sync"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -11,6 +12,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog"
 )
+
+// use lock for protect client generation
+var mu sync.Mutex
 
 func init() {
 	if err := v1beta1.AddToScheme(scheme.Scheme); err != nil {
@@ -25,8 +29,9 @@ type Client struct {
 
 // New creates a new Client.
 func New(getter genericclioptions.RESTClientGetter) *Client {
-
+	mu.Lock()
 	client := kube.New(getter)
+	mu.Unlock()
 	client.Factory = newFactory(client.Factory)
 
 	return &Client{
