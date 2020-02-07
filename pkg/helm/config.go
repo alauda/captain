@@ -3,7 +3,6 @@ package helm
 import (
 	"os"
 
-	"github.com/alauda/captain/pkg/cluster"
 	newkube "github.com/alauda/captain/pkg/kube"
 	"github.com/alauda/captain/pkg/kubeconfig"
 	releaseclient "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
@@ -65,12 +64,12 @@ func getNamespace(flags *genericclioptions.ConfigFlags) string {
 // newActionConfig create a config for all the actions(install,delete,update...)
 // allNamespaces is always set to false for now,
 // default storage driver is Release now
-func newActionConfig(info *cluster.Info) (*action.Configuration, error) {
-	cfg, err := kubeconfig.UpdateKubeConfig(info)
+func (d *Deploy) newActionConfig() (*action.Configuration, error) {
+	cfg, err := kubeconfig.UpdateKubeConfig(d.Cluster)
 	if err != nil {
 		return nil, err
 	}
-	cfg.Namespace = info.Namespace
+	cfg.Namespace = d.Cluster.Namespace
 
 	cfgFlags := kube.GetConfig(cfg.Path, cfg.Context, cfg.Namespace)
 	kc := newkube.New(cfgFlags)
@@ -79,7 +78,7 @@ func newActionConfig(info *cluster.Info) (*action.Configuration, error) {
 
 	namespace := getNamespace(cfgFlags)
 
-	relClientSet, err := releaseclient.NewForConfig(info.ToRestConfig())
+	relClientSet, err := releaseclient.NewForConfig(d.Cluster.ToRestConfig())
 	if err != nil {
 		return nil, err
 	}

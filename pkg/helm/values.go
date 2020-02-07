@@ -55,7 +55,7 @@ func getValues(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, er
 
 	new := Values(hr.Spec.HelmValues.DeepCopy().Values)
 	values = mergeValues(values, new)
-	klog.Infof("get values for helm request: %s  %+v", hr.GetName(), values)
+	klog.V(2).Infof("get values for helm request: %s  %+v", hr.GetName(), values)
 	return values, nil
 
 }

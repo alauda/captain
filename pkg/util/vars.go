@@ -12,4 +12,7 @@ const (
 
 	// ProjectKey is the annotation key for project
 	ProjectKey = "alauda.io/project"
+
+	// NoSyncAnotation indicate to ignore a helmrequest
+	NoSyncAnotation = "captain-no-sync"
 )

@@ -18,14 +18,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/alauda/captain/pkg/helm"
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	"github.com/alauda/captain/pkg/chartrepo"
-	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
 
 	"github.com/alauda/captain/controllers"
@@ -105,9 +107,6 @@ func main() {
 
 	// legacy code....
 
-	// init helm dirs
-	helm.Init()
-
 	// read certs
 	c := kubernetes.NewForConfigOrDie(mgr.GetConfig())
 	s, err := c.CoreV1().Secrets(os.Getenv("KUBERNETES_NAMESPACE")).Get("captain-webhook-cert", metav1.GetOptions{})
@@ -149,6 +148,16 @@ func main() {
 		setupLog.Info("create default chart repo")
 	}
 
+	// init helm dirs
+	helm.Init()
+
+	// we need to list all the existing ChartRepo and add it to helm
+	// sync chartrepo to helm
+	//if err := chartrepo.SyncAllChartRepoToHelm(mgr.GetConfig(), options.ChartRepoNamespace); err != nil {
+	//	setupLog.Error(err, "error add synced repo to helm")
+	//	os.Exit(1)
+	//}
+
 	// create controller
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := ctrl.SetupSignalHandler()
@@ -165,6 +174,11 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
+	// start pprof to debug memory usage
+	go func() {
+		http.ListenAndServe("0.0.0.0:6061", nil)
+	}()
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(stopCh); err != nil {

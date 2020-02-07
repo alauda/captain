@@ -2,13 +2,14 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
-	funk "github.com/thoas/go-funk"
-	v1 "k8s.io/api/core/v1"
+	"github.com/thoas/go-funk"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +48,13 @@ func (c *Controller) syncHandler(key string) error {
 		}
 
 		return err
+	}
+
+	if helmRequest.Annotations != nil {
+		if helmRequest.Annotations[util.NoSyncAnotation] == "true" {
+			klog.Info("found helmrequest want to be ignored by captain: ", helmRequest.Name)
+			return nil
+		}
 	}
 
 	helmRequest.ClusterName = clusterName
@@ -180,7 +188,12 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 		ci := *info
 		ci.Namespace = hr.Spec.Namespace
 		klog.Infof("delete HelmRequest %s for cluster %s", hr.GetName(), ci.Name)
-		err := helm.Delete(hr, &ci)
+
+		d := helm.NewDeploy()
+		d.HelmRequest = hr
+		d.Cluster = &ci
+
+		err := d.Delete()
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -188,7 +201,15 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 
 	err := utilerrors.NewAggregate(errs)
 	if err != nil {
-		return err
+		// if this error was caused by `build resource error`, which is usually caused by CRD issue,
+		// this will block the delete forever, so we just ignore this error, since most of the time,
+		// there are no resource created
+		if strings.Contains(err.Error(), "unable to build kubernetes objects for delete") {
+			klog.Warning("unable to build kubernetes resource when delete, ignore this error: ", err)
+		} else {
+			return err
+		}
+
 	}
 
 	if err := c.removeFinalizer(hr); err != nil {

@@ -3,16 +3,22 @@ package kubeconfig
 import (
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/component-base/system"
+	"github.com/patrickmn/go-cache"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+	"time"
 )
 
 var (
 	// defaultPath is the kuebconfig path
 	defaultPath = ".kube/config"
 )
+
+// kubeConfigCache store the contents of kubeconfig.If there are cluster changes,
+// another runnable will restart captain ,so we can actually cache this forever
+var kubeConfigCache = cache.New(100*time.Minute, 60*time.Minute)
 
 //Config ...
 type Config struct {
@@ -70,9 +76,19 @@ func UpdateKubeConfig(info *cluster.Info) (*Config, error) {
 		return nil, err
 	}
 
-	kubeConfig, err := clientcmd.LoadFromFile(cfg.Path)
-	if err != nil {
-		return nil, err
+	ck := "kube-config"
+	var kubeConfig *clientcmdapi.Config
+	if result, ok := kubeConfigCache.Get(ck); ok {
+		klog.Infof("get kubeconfig from cache")
+		kubeConfig = result.(*clientcmdapi.Config)
+	} else {
+		kc, err := clientcmd.LoadFromFile(cfg.Path)
+		if err != nil {
+			return nil, err
+		}
+		kubeConfig = kc
+		klog.Infof("load kubeconfig from disk")
+		kubeConfigCache.SetDefault(ck, kubeConfig)
 	}
 
 	newKubeConfig := createKubeConfig(info)

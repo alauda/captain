@@ -95,6 +95,15 @@ func encodeData(data interface{}) (string, error) {
 	return b64.EncodeToString(buf.Bytes()), nil
 }
 
+func decodeRawRelease(rel *v1alpha1.Release) (*rspb.Release, error) {
+	var rls rspb.Release
+	rls.Info = rel.Status.ToReleaseInfo()
+	rls.Version = rel.Spec.Version
+	rls.Name = rel.Spec.Name
+	rls.Namespace = rel.GetNamespace()
+	return &rls, nil
+}
+
 // decodeRelease decodes the bytes in data into a release
 // type. Data must contain a base64 encoded string of a
 // valid protobuf encoding of a release, otherwise

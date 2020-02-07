@@ -2,16 +2,19 @@ package controller
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"os"
 
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/release"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
-	funk "github.com/thoas/go-funk"
+	"github.com/thoas/go-funk"
 	"helm.sh/helm/pkg/action"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 )
 
@@ -57,7 +60,7 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 	helmRequest.Status.SyncedClusters = synced
 	klog.Infof("synced %s to clusters: %+v", key, synced)
 
-	err = errors.NewAggregate(errs)
+	err = utilerrors.NewAggregate(errs)
 
 	if len(synced) >= len(clusters) {
 		// all synced
@@ -79,9 +82,47 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 		return err
 	}
 
+	deploy := helm.NewDeploy()
+
+	// found exist release here, this is logic from helm, and we skip the decode part to
+	// avoid OOM. This may be removed in the feature
+	client := c.getAppClientForRelease(helmRequest)
+	if client == nil {
+		// may be not inited yet
+		err := errors.New(fmt.Sprintf("get client for release error, retry later. cluster is: %s", helmRequest.Spec.ClusterName))
+		return err
+	}
+	options := metav1.ListOptions{
+		LabelSelector: kblabels.Set{"name": helmRequest.GetName()}.AsSelector().String(),
+	}
+	hist, err := client.AppV1alpha1().Releases(helmRequest.Spec.Namespace).List(options)
+	deployed := false
+	if err == nil && len(hist.Items) > 0 {
+		// deployed = true
+		for _, item := range hist.Items {
+			if item.Status.Status == "deployed" {
+				deployed = true
+			}
+
+			// delete pending-install releases, may be caused by OOM
+			if item.Status.Status == "pending-install" || item.Status.Status == "uninstalling" || item.Status.Status == "pending-upgrade" || item.Status.Status == "failed" {
+				deploy.Log.Info("found pending release, planning to delete it", "name", item.Name, "status", item.Status.Status)
+				if err := client.AppV1alpha1().Releases(helmRequest.Spec.Namespace).Delete(item.Name, &metav1.DeleteOptions{}); err != nil {
+					deploy.Log.Error(err, "delete pending release error", "name", item.Name)
+				}
+			}
+		}
+	}
+
 	inCluster, _ := c.getClusterInfo("")
-	klog.V(2).Info("get current cluster info for valuesFrom: ", *inCluster)
-	rel, err := helm.Sync(helmRequest, &ci, inCluster)
+
+	deploy.Deployed = deployed
+	deploy.Cluster = &ci
+	deploy.InCluster = inCluster
+	deploy.SystemNamespace = c.systemNamespace
+	deploy.HelmRequest = helmRequest
+
+	rel, err := deploy.Sync()
 	if err != nil {
 		return err
 	}

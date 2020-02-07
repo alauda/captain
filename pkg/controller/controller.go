@@ -65,6 +65,9 @@ type Controller struct {
 
 	clusterConfig clusterConfig
 
+	// this is where all the ChartRepo/Charts lives
+	systemNamespace string
+
 	// restConfig is the kubernetes rest config for the current cluster, used for
 	// sync HelmRequest who's cluster name is "".
 	restConfig *rest.Config
@@ -128,6 +131,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 			clusterClient:     clusterClient,
 			globalClusterName: opt.GlobalClusterName,
 		},
+		systemNamespace:   opt.ChartRepoNamespace,
 		restConfig:        cfg,
 		recorder:          mgr.GetEventRecorderFor(util.ComponentName),
 		helmRequestLister: informer.Lister(),
@@ -312,6 +316,15 @@ func (c *Controller) getAppClient(hr *alpha1.HelmRequest) clientset.Interface {
 		return c.appClientSet
 	} else {
 		return c.clusterClients[hr.ClusterName]
+	}
+}
+
+// if this helmrequst deployed to a remote cluster, the release cluster will be .spec.clusterName
+func (c *Controller) getAppClientForRelease(hr *alpha1.HelmRequest) clientset.Interface {
+	if hr.Spec.ClusterName == "" {
+		return c.getAppClient(hr)
+	} else {
+		return c.clusterClients[hr.Spec.ClusterName]
 	}
 }
 
