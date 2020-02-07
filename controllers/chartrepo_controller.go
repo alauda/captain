@@ -16,20 +16,24 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	"helm.sh/helm/pkg/repo"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
 
@@ -100,8 +104,12 @@ func ignoreNotFound(err error) error {
 
 // syncChartRepo sync ChartRepo to helm repo store
 func (r *ChartRepoReconciler) syncChartRepo(cr *alaudaiov1alpha1.ChartRepo, ctx context.Context) error {
-	// log := r.Log.WithValues("chartrepo", cr.GetName())
+	return r.createCharts(cr, ctx)
 
+}
+
+// DownloadIndexFile fetches the index from a repository.
+func (r *ChartRepoReconciler) GetIndex(cr *alaudaiov1alpha1.ChartRepo, ctx context.Context) (*repo.IndexFile, error) {
 	var username string
 	var password string
 
@@ -115,7 +123,7 @@ func (r *ChartRepoReconciler) syncChartRepo(cr *alaudaiov1alpha1.ChartRepo, ctx 
 
 		var secret corev1.Secret
 		if err := r.Get(ctx, key, &secret); err != nil {
-			return err
+			return nil, err
 		}
 
 		data := secret.Data
@@ -124,12 +132,47 @@ func (r *ChartRepoReconciler) syncChartRepo(cr *alaudaiov1alpha1.ChartRepo, ctx 
 
 	}
 
-	if err := helm.AddBasicAuthRepository(cr.GetName(), cr.Spec.URL, username, password); err != nil {
-		return err
+	link := strings.TrimSuffix(cr.Spec.URL, "/") + "/index.yaml"
+	c := &http.Client{Timeout: 30 * time.Second}
+	req, err := http.NewRequest("GET", link, nil)
+
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
 	}
 
-	return r.createCharts(cr, ctx)
+	// Get the data
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		return nil, errors.Errorf("failed to fetch %s : %s", link, resp.Status)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, resp.Body)
+	body := buf.Bytes()
+
+	return loadIndex(body)
+
+}
+
+// loadIndex loads an index file and does minimal validity checking.
+//
+// This will fail if API Version is not set (ErrNoAPIVersion) or if the unmarshal fails.
+func loadIndex(data []byte) (*repo.IndexFile, error) {
+	i := &repo.IndexFile{}
+	if err := yaml.Unmarshal(data, i); err != nil {
+		return i, err
+	}
+
+	i.SortEntries()
+	if i.APIVersion == "" {
+		return i, repo.ErrNoAPIVersion
+	}
+	return i, nil
 }
 
 // createCharts create charts resource for a repo
@@ -138,7 +181,7 @@ func (r *ChartRepoReconciler) createCharts(cr *alaudaiov1alpha1.ChartRepo, ctx c
 	log := r.Log.WithValues("chartrepo", cr.GetName())
 
 	checked := map[string]bool{}
-	index, err := helm.GetChartsForRepo(cr.GetName())
+	index, err := r.GetIndex(cr, ctx)
 	if err != nil {
 		return err
 	}
@@ -304,7 +347,7 @@ func (r *ChartRepoReconciler) isReadyForResync(cr *alaudaiov1alpha1.ChartRepo) b
 
 		// log.Info("debug timer,", "last", last, "diff", diff)
 
-		if diff >= 90 {
+		if diff >= 60 {
 			return true
 		}
 

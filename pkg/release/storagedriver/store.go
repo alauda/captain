@@ -145,7 +145,7 @@ func (rel *Releases) Query(labels map[string]string) ([]*rspb.Release, error) {
 
 	var results []*rspb.Release
 	for _, item := range list.Items {
-		rls, err := decodeRelease(&item)
+		rls, err := decodeRawRelease(&item)
 		if err != nil {
 			rel.Log("query: failed to decode release: %s", err)
 			continue

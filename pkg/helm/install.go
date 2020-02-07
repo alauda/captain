@@ -2,11 +2,8 @@ package helm
 
 import (
 	"os"
-	"strings"
 	"time"
 
-	"github.com/alauda/captain/pkg/cluster"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"github.com/pkg/errors"
 	"helm.sh/helm/pkg/action"
 	"helm.sh/helm/pkg/chart"
@@ -15,12 +12,17 @@ import (
 	"helm.sh/helm/pkg/downloader"
 	"helm.sh/helm/pkg/getter"
 	"helm.sh/helm/pkg/release"
-	"k8s.io/klog"
 )
 
 //install install a chart to a cluster, If the release already exist, upgrade it
-func install(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.Info) (*release.Release, error) {
-	cfg, err := newActionConfig(info)
+func (d *Deploy) install() (*release.Release, error) {
+	hr := d.HelmRequest
+	inCluster := d.InCluster
+	systemNamespace := d.SystemNamespace
+
+	log := d.Log
+
+	cfg, err := d.newActionConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -37,15 +39,13 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.In
 	}
 	_, chrt, err := client.NameAndChart(args)
 	if err != nil {
-		klog.Errorf("get chrt and name error: %s", err.Error())
+		d.Log.Error(err, "get chart and name error")
 		return nil, err
 	}
 
-	klog.Infof("Chart: %s", chrt)
+	log.Info("chart name is", "name", chrt)
 
 	client.ReleaseName = getReleaseName(hr)
-	// when install failed and we want to retry
-	client.Replace = true
 
 	if hr.Spec.Version != "" {
 		client.ChartPathOptions = action.ChartPathOptions{
@@ -53,41 +53,54 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.In
 		}
 	}
 
-	cp, err := client.ChartPathOptions.LocateChart(chrt, settings)
-	if err != nil {
-		klog.Errorf("locate chart %s error: %s", cp, err.Error())
-		// a simple string match
-		if client.Version == "" && strings.Contains(err.Error(), " no chart version found for") {
-			klog.Info("no normal version found, try using devel flag")
-			client.Version = ">0.0.0-0"
-			cp, err = client.ChartPathOptions.LocateChart(chrt, settings)
-			if err != nil {
-				return nil, err
-			}
-		} else {
+	//cp, err := client.ChartPathOptions.LocateChart(chrt, settings)
+	//if err != nil {
+	//	klog.Errorf("locate chart %s error: %s", cp, err.Error())
+	//	// a simple string match
+	//	if client.Version == "" && strings.Contains(err.Error(), " no chart version found for") {
+	//		klog.Info("no normal version found, try using devel flag")
+	//		client.Version = ">0.0.0-0"
+	//		cp, err = client.ChartPathOptions.LocateChart(chrt, settings)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//	} else {
+	//		return nil, err
+	//	}
+	//}
+
+	// load from cache first, then from disk
+	var chartRequested *chart.Chart
+	chartPath := getChartPath(hr.Spec.Chart, hr.Spec.Version)
+	d.Log.Info("chart path", "path", chartPath)
+	result, ok := chartCache.Get(chartPath)
+	if ok {
+		log.Info("load charts from cache", "path", chartPath)
+		chartRequested = result.(*chart.Chart)
+	} else {
+		dl := NewDownloader(systemNamespace, inCluster.ToRestConfig(), d.Log)
+		chartPath, err := dl.downloadChart(hr.Spec.Chart, hr.Spec.Version)
+		if err != nil {
 			return nil, err
 		}
+		log.Info("load charts from disk", "path", chartPath)
+		chartRequested, err = loader.Load(chartPath)
+		if err != nil {
+			return nil, err
+		}
+		chartCache.SetDefault(chartPath, chartRequested)
 	}
-
-	klog.V(9).Infof("CHART PATH: %s\n", cp)
 
 	values, err := getValues(hr, inCluster.ToRestConfig())
 	if err != nil {
 		return nil, err
 	}
 
-	// Check chart dependencies to make sure all are present in /charts
-	chartRequested, err := loader.Load(cp)
-	if err != nil {
-		klog.Errorf("load error: %s", err.Error())
-		return nil, err
-	}
-
 	client.Namespace = hr.Spec.Namespace
-	klog.Infof("load chart request: %s client: %+v", chartRequested.Name(), client)
+	// klog.Infof("load chart request: %s client: %+v", chartRequested.Name(), client)
 	validInstallableChart, err := isChartInstallable(chartRequested)
 	if !validInstallableChart {
-		klog.Errorf("not installable error : %+v", err)
+		log.Error(err, "not installable error")
 		return nil, err
 	}
 
@@ -99,7 +112,7 @@ func install(hr *v1alpha1.HelmRequest, info *cluster.Info, inCluster *cluster.In
 			if client.DependencyUpdate {
 				man := &downloader.Manager{
 					Out:        out,
-					ChartPath:  cp,
+					ChartPath:  ChartsDir,
 					Keyring:    client.ChartPathOptions.Keyring,
 					SkipUpdate: false,
 					Getters:    getter.All(settings),

@@ -2,11 +2,13 @@ module github.com/alauda/captain
 
 go 1.13
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20191221113435-3710e11fac68+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200207054522-eb9e84f51079+incompatible
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
+
+replace vbom.ml/util => github.com/fvbommel/util v0.0.0-20180919145318-efcd4e0f9787
 
 require k8s.io/kubernetes v1.15.0
 
@@ -34,7 +36,6 @@ replace (
 )
 
 require (
-	github.com/Jeffail/gabs/v2 v2.3.0
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
@@ -66,8 +67,10 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/soheilhy/cmux v0.1.4 // indirect
+	github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c
 	github.com/thoas/go-funk v0.5.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
+	github.com/ventu-io/go-shortid v0.0.0-20170305092000-935de6796a71 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
@@ -81,4 +84,5 @@ require (
 	k8s.io/klog v1.0.0
 	rsc.io/letsencrypt v0.0.3 // indirect
 	sigs.k8s.io/controller-runtime v0.2.2
+	sigs.k8s.io/yaml v1.1.0
 )

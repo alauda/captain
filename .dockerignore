@@ -2,4 +2,8 @@ captain
 .kube
 .helm
 docs
+.git
+bin
+charts
+old-code
 

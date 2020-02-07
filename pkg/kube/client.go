@@ -7,8 +7,9 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 
+	"github.com/pkg/errors"
 	"helm.sh/helm/pkg/kube"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog"
 )
@@ -60,11 +61,24 @@ func (c *Client) Create(resources kube.ResourceList) (*kube.Result, error) {
 	result, err := c.Client.Create(resources)
 	if err != nil {
 		klog.Warning("create resource error:", err)
-		if errors.IsAlreadyExists(err) {
+		if apierrors.IsAlreadyExists(err) {
 			klog.Warningf("create error due to resource exist, do a dumb update...")
 			return c.Client.Update(resources, resources, true)
 		}
 		return result, err
 	}
 	return result, nil
+}
+
+func (c *Client) IsReachable() error {
+	client, err := c.Factory.KubernetesClientSet()
+	if err != nil {
+		klog.Error("create kubernetes client error when check cluster is reachable: ", err)
+		return err
+	}
+	_, err = client.ServerVersion()
+	if err != nil {
+		return errors.New("Kubernetes cluster unreachable")
+	}
+	return nil
 }
