@@ -18,7 +18,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/alauda/captain/pkg/helm"
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
@@ -147,16 +146,6 @@ func main() {
 		}
 		setupLog.Info("create default chart repo")
 	}
-
-	// init helm dirs
-	helm.Init()
-
-	// we need to list all the existing ChartRepo and add it to helm
-	// sync chartrepo to helm
-	//if err := chartrepo.SyncAllChartRepoToHelm(mgr.GetConfig(), options.ChartRepoNamespace); err != nil {
-	//	setupLog.Error(err, "error add synced repo to helm")
-	//	os.Exit(1)
-	//}
 
 	// create controller
 	// set up signals so we handle the first shutdown signal gracefully

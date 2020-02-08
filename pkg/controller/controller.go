@@ -324,6 +324,9 @@ func (c *Controller) getAppClientForRelease(hr *alpha1.HelmRequest) clientset.In
 	if hr.Spec.ClusterName == "" {
 		return c.getAppClient(hr)
 	} else {
+		if hr.Spec.ClusterName == "global" {
+			return c.appClientSet
+		}
 		return c.clusterClients[hr.Spec.ClusterName]
 	}
 }
