@@ -10,47 +10,11 @@ import (
 
 	"github.com/alauda/captain/pkg/release/storagedriver"
 	"helm.sh/helm/pkg/action"
-	"helm.sh/helm/pkg/helmpath"
-
-	"github.com/alauda/component-base/system"
-	"helm.sh/helm/pkg/repo"
 	"helm.sh/helm/pkg/storage"
 	"helm.sh/helm/pkg/storage/driver"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog"
 )
-
-// Init do a lot of dirty stuff
-// 1. init repo dir
-// 2. update repo index
-// we will mount the repo file from a ConfigMap by default, so this function will do the index update
-func Init() {
-	path := helmpath.ConfigPath("repositories.yaml")
-	err := system.CreatePathIfNotExist(path)
-	if err != nil {
-		panic(err)
-	}
-
-	path = helmpath.CachePath("repository") + "/"
-	if err := system.CreatePathIfNotExist(path); err != nil {
-		panic(err)
-	}
-
-	fi, err := os.Stat(path)
-	if err != nil {
-		panic(err)
-	} else {
-		if fi.Size() > 0 {
-			klog.Infof("repo file has content, update index....")
-			// TODO: why this will panic
-			// if err := initReposIndex(); err != nil {
-			// 	panic(err)
-			// }
-		} else if err = repo.NewFile().WriteFile(path, 0644); err != nil {
-			panic(err)
-		}
-	}
-}
 
 // getNamespace get the namespaces from ..... This may be a little unnecessary, may be we can just
 // use the one we know.
