@@ -52,7 +52,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 ## Documention
 
 * [How captain works](./docs/captain.md)
-* [CRDs explain]
+* CRDs explain
   * [HelmRequest CRD](./docs/helmrequest.md)
   * [Release CRD](./docs/release.md)
   * [ChartRepo CRD](./docs/chartrepo.md)
