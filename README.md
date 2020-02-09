@@ -57,7 +57,7 @@ For the detailed explain and advanced usage, please check the documentation belo
   * [Release CRD](./docs/release.md)
   * [ChartRepo CRD](./docs/chartrepo.md)
   * [Chart CRD](./docs/chart.md)
-* [Multi-Cluster](./docs/multi-cluster.md)
+* [Multi-Cluster Support](./docs/multi-cluster.md)
 
 
 ## SDK
