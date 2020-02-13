@@ -95,6 +95,7 @@ func encodeData(data interface{}) (string, error) {
 	return b64.EncodeToString(buf.Bytes()), nil
 }
 
+// TODO: remote this
 func decodeRawRelease(rel *v1alpha1.Release) (*rspb.Release, error) {
 	var rls rspb.Release
 	rls.Info = rel.Status.ToReleaseInfo()

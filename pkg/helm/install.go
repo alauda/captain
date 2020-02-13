@@ -46,6 +46,7 @@ func (d *Deploy) install() (*release.Release, error) {
 	log.Info("chart name is", "name", chrt)
 
 	client.ReleaseName = getReleaseName(hr)
+	client.Replace = true
 
 	if hr.Spec.Version != "" {
 		client.ChartPathOptions = action.ChartPathOptions{

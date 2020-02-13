@@ -86,6 +86,7 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 
 	// found exist release here, this is logic from helm, and we skip the decode part to
 	// avoid OOM. This may be removed in the feature
+	// TODO: may be a bug ,if installToAllCluster, may be get the wrong release.
 	client := c.getAppClientForRelease(helmRequest)
 	if client == nil {
 		// may be not inited yet
