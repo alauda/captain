@@ -62,57 +62,41 @@ func (d *Downloader) getRepoInfo(name string, ns string) (*repo.Entry, error) {
 	return entry, err
 }
 
-// cal the local path for a chart
-// name: <repo>/<name>
-func getChartPath(name, version string) string {
-	new := strings.Replace(name, "/", "-", -1)
-	return fmt.Sprintf("%s/%s-%s.tgz", ChartsDir, new, version)
-}
-
+// downloadChart download a chart from helm repo to local disk and return the path
+// name: <repo>/<chart>
 func (d *Downloader) downloadChart(name string, version string) (string, error) {
 	log := d.log
 
-	repo, chart := getRepoAndChart(name)
-	if repo == "" && chart == "" {
+	repoName, chart := getRepoAndChart(name)
+	if repoName == "" && chart == "" {
 		return "", errors.New("cannot parse chart name")
 	}
-
 	log.Info("get chart", "name", name, "version", version)
 
 	dir := ChartsDir
-
-	if version != "" {
-		// we can check the path now
-		checkPath := getChartPath(name, version)
-		if _, err := os.Stat(checkPath); !os.IsNotExist(err) {
-			log.Info("chart already downloaded, use it", "path", checkPath)
-			return checkPath, nil
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			return "", err
 		}
+		log.Info("helm charts dir not exist, create it: ", "dir", dir)
 	}
 
-	entry, err := d.getRepoInfo(repo, d.ns)
+	entry, err := d.getRepoInfo(repoName, d.ns)
 	if err != nil {
 		log.Error(err, "get chartrepo error")
 		return "", err
 	}
 
-	chartResourceName := fmt.Sprintf("%s.%s", strings.ToLower(chart), repo)
-
-	path, err := chartrepo.GetChart(chartResourceName, version, d.ns, d.cfg)
+	chartResourceName := fmt.Sprintf("%s.%s", strings.ToLower(chart), repoName)
+	cv, err := chartrepo.GetChart(chartResourceName, version, d.ns, d.cfg)
 	if err != nil {
 		log.Error(err, "get chart error")
 		return "", err
 	}
 
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, 0755); err != nil {
-			return "", err
-		}
-		log.Info("dir not exist, create it: ", "dir", dir)
-	}
-
+	path := cv.URLs[0]
 	fileName := strings.Split(path, "/")[1]
-	filePath := fmt.Sprintf("%s/%s-%s", dir, repo, fileName)
+	filePath := fmt.Sprintf("%s/%s-%s-%s", dir, repoName, cv.Digest, fileName)
 
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		log.Info("chart already downloaded, use it", "path", filePath)
@@ -123,6 +107,8 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 		log.Error(err, "download chart to disk error")
 		return "", err
 	}
+
+	log.Info("download chart to disk", "path", filePath)
 
 	return filePath, nil
 

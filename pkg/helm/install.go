@@ -54,42 +54,18 @@ func (d *Deploy) install() (*release.Release, error) {
 		}
 	}
 
-	//cp, err := client.ChartPathOptions.LocateChart(chrt, settings)
-	//if err != nil {
-	//	klog.Errorf("locate chart %s error: %s", cp, err.Error())
-	//	// a simple string match
-	//	if client.Version == "" && strings.Contains(err.Error(), " no chart version found for") {
-	//		klog.Info("no normal version found, try using devel flag")
-	//		client.Version = ">0.0.0-0"
-	//		cp, err = client.ChartPathOptions.LocateChart(chrt, settings)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//	} else {
-	//		return nil, err
-	//	}
-	//}
-
 	// load from cache first, then from disk
 	var chartRequested *chart.Chart
-	chartPath := getChartPath(hr.Spec.Chart, hr.Spec.Version)
-	d.Log.Info("chart path", "path", chartPath)
-	result, ok := chartCache.Get(chartPath)
-	if ok {
-		log.Info("load charts from cache", "path", chartPath)
-		chartRequested = result.(*chart.Chart)
-	} else {
-		dl := NewDownloader(systemNamespace, inCluster.ToRestConfig(), d.Log)
-		chartPath, err := dl.downloadChart(hr.Spec.Chart, hr.Spec.Version)
-		if err != nil {
-			return nil, err
-		}
-		log.Info("load charts from disk", "path", chartPath)
-		chartRequested, err = loader.Load(chartPath)
-		if err != nil {
-			return nil, err
-		}
-		chartCache.SetDefault(chartPath, chartRequested)
+
+	dl := NewDownloader(systemNamespace, inCluster.ToRestConfig(), d.Log)
+	chartPath, err := dl.downloadChart(hr.Spec.Chart, hr.Spec.Version)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("load charts from disk", "path", chartPath)
+	chartRequested, err = loader.Load(chartPath)
+	if err != nil {
+		return nil, err
 	}
 
 	values, err := getValues(hr, inCluster.ToRestConfig())
@@ -98,7 +74,6 @@ func (d *Deploy) install() (*release.Release, error) {
 	}
 
 	client.Namespace = hr.Spec.Namespace
-	// klog.Infof("load chart request: %s client: %+v", chartRequested.Name(), client)
 	validInstallableChart, err := isChartInstallable(chartRequested)
 	if !validInstallableChart {
 		log.Error(err, "not installable error")

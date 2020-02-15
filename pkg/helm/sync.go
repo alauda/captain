@@ -88,44 +88,18 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	}
 	client.ResetValues = true
 
-	// locate chart
-	//chrt := hr.Spec.Chart
-	//chartPath, err := client.ChartPathOptions.LocateChart(chrt, settings)
-	//if err != nil {
-	//	klog.Errorf("locate chart %s error: %s", chartPath, err.Error())
-	//	// a simple string match
-	//	if client.Version == "" && strings.Contains(err.Error(), " no chart version found for") {
-	//		klog.Info("no normal version found, try using devel flag")
-	//		client.Version = ">0.0.0-0"
-	//		chartPath, err = client.ChartPathOptions.LocateChart(chrt, settings)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//	} else {
-	//		return nil, err
-	//	}
-	//}
-
 	// load from cache first, then from disk
 	var ch *chart.Chart
-	chartPath := getChartPath(hr.Spec.Chart, hr.Spec.Version)
-	log.Info("chart path", "path", chartPath)
-	result, ok := chartCache.Get(chartPath)
-	if ok {
-		log.Info("load charts from cache", "path", chartPath)
-		ch = result.(*chart.Chart)
-	} else {
-		downloader := NewDownloader(d.SystemNamespace, d.InCluster.ToRestConfig(), d.Log)
-		chartPath, err := downloader.downloadChart(hr.Spec.Chart, hr.Spec.Version)
-		if err != nil {
-			return nil, err
-		}
-		log.Info("load charts from disk", "path", chartPath)
-		ch, err = loader.Load(chartPath)
-		if err != nil {
-			return nil, err
-		}
-		chartCache.SetDefault(chartPath, ch)
+
+	downloader := NewDownloader(d.SystemNamespace, d.InCluster.ToRestConfig(), d.Log)
+	chartPath, err := downloader.downloadChart(hr.Spec.Chart, hr.Spec.Version)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("load charts from disk", "path", chartPath)
+	ch, err = loader.Load(chartPath)
+	if err != nil {
+		return nil, err
 	}
 
 	if req := ch.Metadata.Dependencies; req != nil {
