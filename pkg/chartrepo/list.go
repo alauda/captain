@@ -118,23 +118,23 @@ func GetChartRepo(name string, ns string, cfg *rest.Config) (*repo.Entry, error)
 
 }
 
-// get chart
-func GetChart(name, version, ns string, cfg *rest.Config) (string, error) {
+// get chart info, url and digest is the info we want
+func GetChart(name, version, ns string, cfg *rest.Config) (*repo.ChartVersion, error) {
 	client, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	chart, err := client.AppV1alpha1().Charts(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, item := range chart.Spec.Versions {
 		if version == "" || version == item.Version {
-			return item.URLs[0], nil
+			return &item.ChartVersion, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("cannot find version %s for chart %s", version, name))
+	return nil, errors.New(fmt.Sprintf("cannot find version %s for chart %s", version, name))
 
 }

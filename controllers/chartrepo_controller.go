@@ -104,8 +104,7 @@ func ignoreNotFound(err error) error {
 
 // syncChartRepo sync ChartRepo to helm repo store
 func (r *ChartRepoReconciler) syncChartRepo(cr *alaudaiov1alpha1.ChartRepo, ctx context.Context) error {
-	return r.createCharts(cr, ctx)
-
+	return r.syncCharts(cr, ctx)
 }
 
 // DownloadIndexFile fetches the index from a repository.
@@ -175,12 +174,14 @@ func loadIndex(data []byte) (*repo.IndexFile, error) {
 	return i, nil
 }
 
-// createCharts create charts resource for a repo
+// syncCharts create charts resource for a repo
 // TODO: ace.ACE
-func (r *ChartRepoReconciler) createCharts(cr *alaudaiov1alpha1.ChartRepo, ctx context.Context) error {
+func (r *ChartRepoReconciler) syncCharts(cr *alaudaiov1alpha1.ChartRepo, ctx context.Context) error {
 	log := r.Log.WithValues("chartrepo", cr.GetName())
 
 	checked := map[string]bool{}
+	existCharts := map[string]alaudaiov1alpha1.Chart{}
+
 	index, err := r.GetIndex(cr, ctx)
 	if err != nil {
 		return err
@@ -190,17 +191,13 @@ func (r *ChartRepoReconciler) createCharts(cr *alaudaiov1alpha1.ChartRepo, ctx c
 		checked[strings.ToLower(name)] = true
 	}
 
-	existCharts := map[string]alaudaiov1alpha1.Chart{}
-
 	var charts alaudaiov1alpha1.ChartList
 	labels := client.MatchingLabels{
 		"repo": cr.GetName(),
 	}
-
 	if err := r.List(ctx, &charts, labels, client.InNamespace(r.Namespace)); err != nil {
 		return err
 	}
-
 	for _, item := range charts.Items {
 		name := strings.Split(item.GetName(), ".")[0]
 		existCharts[name] = item
@@ -222,12 +219,12 @@ func (r *ChartRepoReconciler) createCharts(cr *alaudaiov1alpha1.ChartRepo, ctx c
 		}
 
 		old := existCharts[name]
-
 		if compareChart(old, chart) {
 			chart.SetResourceVersion(old.GetResourceVersion())
 			if err := r.Update(ctx, chart); err != nil {
 				return err
 			}
+			log.Info("update chart", "name", old.Name, "repo", cr.Name)
 		}
 
 	}
@@ -241,18 +238,28 @@ func (r *ChartRepoReconciler) createCharts(cr *alaudaiov1alpha1.ChartRepo, ctx c
 			}
 			log.Info("delete charts", "name", item.GetName())
 		}
-
 	}
 
 	return nil
-
 }
 
-// compareChart simply compare versions list length
+// compareChart compare if a Chart need update
+// 1. If length not equal, update
+// 2. compare all digest
+
 func compareChart(old alaudaiov1alpha1.Chart, new *alaudaiov1alpha1.Chart) bool {
 	if len(old.Spec.Versions) != len(new.Spec.Versions) {
 		return true
 	}
+
+	for _, o := range old.Spec.Versions {
+		for _, n := range new.Spec.Versions {
+			if o.Version == n.Version && o.Digest != n.Digest {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 
@@ -329,6 +336,10 @@ func (r *ChartRepoReconciler) updateChartRepoStatus(ctx context.Context, cr *ala
 
 func (r *ChartRepoReconciler) isReadyForResync(cr *alaudaiov1alpha1.ChartRepo) bool {
 	log := r.Log.WithValues("chartrepo", cr.GetName())
+
+	if cr.Status.Phase != "Synced" {
+		return true
+	}
 
 	if cr.GetAnnotations() != nil && cr.GetAnnotations()["alauda.io/last-sync-at"] != "" {
 		last := cr.GetAnnotations()["alauda.io/last-sync-at"]
