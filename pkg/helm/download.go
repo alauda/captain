@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -95,6 +96,7 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 	}
 
 	path := cv.URLs[0]
+
 	fileName := strings.Split(path, "/")[1]
 	filePath := fmt.Sprintf("%s/%s-%s-%s", dir, repoName, cv.Digest, fileName)
 
@@ -118,13 +120,19 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 // It writes to the destination file as it downloads it, without
 // loading the entire file into memory.
 func downloadFile(entry *repo.Entry, chartPath, filepath string) error {
-
 	client := &http.Client{Timeout: 30 * time.Second}
-	url := entry.URL + "/" + chartPath
+
+	ep := entry.URL + "/" + chartPath
 	if strings.HasSuffix(entry.URL, "/") {
-		url = entry.URL + chartPath
+		ep = entry.URL + chartPath
 	}
-	req, err := http.NewRequest("GET", url, nil)
+
+	_, err := url.Parse(chartPath)
+	if err == nil {
+		ep = chartPath
+	}
+
+	req, err := http.NewRequest("GET", ep, nil)
 	if entry.Username != "" && entry.Password != "" {
 		req.SetBasicAuth(entry.Username, entry.Password)
 	}
@@ -137,7 +145,7 @@ func downloadFile(entry *repo.Entry, chartPath, filepath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return errors.Errorf("failed to fetch %s : %s", url, resp.Status)
+		return errors.Errorf("failed to fetch %s : %s", ep, resp.Status)
 	}
 
 	buf := bytes.NewBuffer(nil)
