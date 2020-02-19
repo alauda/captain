@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -127,8 +126,7 @@ func downloadFile(entry *repo.Entry, chartPath, filepath string) error {
 		ep = entry.URL + chartPath
 	}
 
-	_, err := url.Parse(chartPath)
-	if err == nil {
+	if strings.HasPrefix(chartPath, "http://") || strings.HasPrefix(chartPath, "https://") {
 		ep = chartPath
 	}
 
