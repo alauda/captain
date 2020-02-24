@@ -1,16 +1,44 @@
 package helm
 
 import (
+	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/component-base/hash"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"helm.sh/helm/pkg/helmpath"
 )
 
-//IsHelmRequestSynced check if a HelmRequest is synced
+// GenUniqueHash generate a unique hash for a HelmRequest
+func GenUniqueHash(hr *v1alpha1.HelmRequest) string {
+	source := struct {
+		spec        v1alpha1.HelmRequestSpec
+		annotations map[string]string
+	}{
+		hr.Spec,
+		hr.Annotations,
+	}
+	return hash.GenHashStr(source)
+}
+
+// IsHelmRequestSynced check if a HelmRequest is synced
 // only if hash is equal and not install to all clusters
+// First version: only hash .spec
+// Second version: hash .spec and .metadata.annotations
 func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
-	current := hash.GenHashStr(hr.Spec)
-	return current == hr.Status.LastSpecHash
+	current := GenUniqueHash(hr)
+	if current == hr.Status.LastSpecHash {
+		return true
+	}
+
+	// This is for old and exist HelmRequest, they are already synced.
+	// we don't want the algorithm change to cause them to be upgrade again
+	onlySpec := hash.GenHashStr(hr.Spec)
+	if onlySpec == hr.Status.LastSpecHash {
+		if hr.Annotations == nil || hr.Annotations[util.KubectlCaptainSync] == "" {
+			return true
+		}
+	}
+
+	return false
 }
 
 // getReleaseName get release name
