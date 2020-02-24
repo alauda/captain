@@ -30,15 +30,12 @@ func (c *Controller) newHelmRequestHandler() cache.ResourceEventHandler {
 				c.enqueueHelmRequest(new)
 			}
 
-			if newHR.Status.Phase == alpha1.HelmRequestPending {
-				klog.V(4).Infof("")
-			}
-
 			if oldHR.ResourceVersion == newHR.ResourceVersion {
 				return
 			}
-			if reflect.DeepEqual(oldHR.Spec, newHR.Spec) {
-				klog.V(4).Infof("spec equal, not update: %s", newHR.Name)
+
+			if reflect.DeepEqual(oldHR.Spec, newHR.Spec) && reflect.DeepEqual(oldHR.Annotations, newHR.Annotations) {
+				klog.V(4).Infof("spec/annotations equal, not update: %s", newHR.Name)
 				return
 			}
 			klog.V(4).Infof("old hr: %+v, new hr: %+v", oldHR.Spec, newHR.Spec)

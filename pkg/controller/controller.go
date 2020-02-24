@@ -18,6 +18,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/alauda/captain/pkg/helm"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -32,8 +33,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-
-	"github.com/alauda/component-base/hash"
 
 	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
@@ -286,7 +285,7 @@ func (c *Controller) updateHelmRequestStatus(helmRequest *alpha1.HelmRequest) er
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
-	h := hash.GenHashStr(helmRequest.Spec)
+	h := helm.GenUniqueHash(helmRequest)
 	// Note: we have to generate the hash before the deepcopy, because somehow the deepcopy
 	// can create a spec that have different hash value.
 	request := helmRequest.DeepCopy()
@@ -297,7 +296,7 @@ func (c *Controller) updateHelmRequestStatus(helmRequest *alpha1.HelmRequest) er
 // setPartialSyncedStatus set spec hash and partial-synced status for helm-request
 //TODO: merge with updateHelmRequestStatus
 func (c *Controller) setPartialSyncedStatus(helmRequest *alpha1.HelmRequest) error {
-	h := hash.GenHashStr(helmRequest.Spec)
+	h := helm.GenUniqueHash(helmRequest)
 	request := helmRequest.DeepCopy()
 	request.Status.LastSpecHash = h
 	return c.updateHelmRequestPhase(request, alpha1.HelmRequestPartialSynced)
@@ -308,6 +307,10 @@ func (c *Controller) setSyncFailedStatus(helmRequest *alpha1.HelmRequest, err er
 	c.sendFailedSyncEvent(helmRequest, err)
 	return c.updateHelmRequestPhase(helmRequest, alpha1.HelmRequestFailed)
 
+}
+
+func (c *Controller) setPendingStatus(helmRequest *alpha1.HelmRequest) error {
+	return c.updateHelmRequestPhase(helmRequest, alpha1.HelmRequestPending)
 }
 
 // getAppClient get a kubernetes app client for the target hr(may be from global cluster or other clusters)

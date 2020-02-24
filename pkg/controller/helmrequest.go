@@ -87,6 +87,7 @@ func (c *Controller) syncHandler(key string) error {
 			}
 			return nil
 		}
+		c.setPendingStatus(helmRequest)
 		klog.Infof("sync HelmRequest %s to cluster %s", key, helmRequest.Spec.ClusterName)
 		if err := c.syncToCluster(helmRequest); err != nil {
 			c.setSyncFailedStatus(helmRequest, err)

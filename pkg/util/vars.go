@@ -15,4 +15,8 @@ const (
 
 	// NoSyncAnotation indicate to ignore a helmrequest
 	NoSyncAnotation = "captain-no-sync"
+
+	// KubectlCaptainSync is a key in annotations to indicate that kubectl-captain have force
+	// trigger a upgrade for this HelmRequest, we need to resync it. Usally it's value is current timestamp
+	KubectlCaptainSync = "kubectl-captain.resync"
 )
