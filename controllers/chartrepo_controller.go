@@ -41,10 +41,6 @@ import (
 	alaudaiov1alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 )
 
-var transCfg = &http.Transport{
-	TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
-}
-
 // ChartRepoReconciler reconciles a ChartRepo object
 type ChartRepoReconciler struct {
 	client.Client
