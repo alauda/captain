@@ -18,6 +18,7 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/alauda/captain/pkg/util"
 	"github.com/go-logr/logr"
@@ -39,6 +40,10 @@ import (
 
 	alaudaiov1alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 )
+
+var transCfg = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+}
 
 // ChartRepoReconciler reconciles a ChartRepo object
 type ChartRepoReconciler struct {
@@ -132,7 +137,10 @@ func (r *ChartRepoReconciler) GetIndex(cr *alaudaiov1alpha1.ChartRepo, ctx conte
 	}
 
 	link := strings.TrimSuffix(cr.Spec.URL, "/") + "/index.yaml"
-	c := &http.Client{Timeout: 30 * time.Second}
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	c := &http.Client{Timeout: 30 * time.Second, Transport: transCfg}
 	req, err := http.NewRequest("GET", link, nil)
 
 	if username != "" && password != "" {
