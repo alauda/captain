@@ -2,7 +2,7 @@ module github.com/alauda/captain
 
 go 1.13
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200213140638-a71ba7580669+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200310134918-53e02bbfaffe+incompatible
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
