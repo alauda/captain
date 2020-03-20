@@ -323,7 +323,7 @@ spec:
               value: local
             - name: STORAGE_LOCAL_ROOTDIR
               value: /charts
-          image: chartmuseum/chartmuseum:latest
+          image: index.alauda.cn/claas/chartmuseum:latest
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /charts
