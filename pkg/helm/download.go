@@ -2,6 +2,7 @@ package helm
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"github.com/alauda/captain/pkg/chartrepo"
 	"github.com/go-logr/logr"
@@ -119,7 +120,10 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 // It writes to the destination file as it downloads it, without
 // loading the entire file into memory.
 func downloadFile(entry *repo.Entry, chartPath, filepath string) error {
-	client := &http.Client{Timeout: 30 * time.Second}
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	client := &http.Client{Timeout: 30 * time.Second, Transport: transCfg}
 
 	ep := entry.URL + "/" + chartPath
 	if strings.HasSuffix(entry.URL, "/") {

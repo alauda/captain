@@ -18,6 +18,7 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/Masterminds/vcs"
 	"github.com/alauda/captain/pkg/helm"
@@ -360,7 +361,10 @@ func (r *ChartRepoReconciler) GetIndex(cr *v1beta1.ChartRepo, ctx context.Contex
 	}
 
 	link := strings.TrimSuffix(cr.Spec.URL, "/") + "/index.yaml"
-	c := &http.Client{Timeout: 30 * time.Second}
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	c := &http.Client{Timeout: 30 * time.Second, Transport: transCfg}
 	req, err := http.NewRequest("GET", link, nil)
 
 	if username != "" && password != "" {
