@@ -274,3 +274,60 @@ spec:
         imagePullPolicy: IfNotPresent
         name: cert-init
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: captain-chartmuseum
+  name: captain-chartmuseum
+spec:
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: captain-chartmuseum
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: captain-chartmuseum
+  name: captain-chartmuseum
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: captain-chartmuseum
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: captain-chartmuseum
+    spec:
+      containers:
+        - name: chartmuseum
+          args:
+            - --depth=1
+            - --allow-overwrite
+          env:
+            - name: DEBUG
+              value: "1"
+            - name: STORAGE
+              value: local
+            - name: STORAGE_LOCAL_ROOTDIR
+              value: /charts
+          image: chartmuseum/chartmuseum:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /charts
+              name: chart-volume
+      volumes:
+        - name: chart-volume
+          emptyDir: {}
