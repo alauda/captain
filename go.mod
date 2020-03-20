@@ -2,13 +2,17 @@ module github.com/alauda/captain
 
 go 1.13
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200213140638-a71ba7580669+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200317070656-13455963468a+incompatible
+
+replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200311033314-5e41368b07e2
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 
 replace vbom.ml/util => github.com/fvbommel/util v0.0.0-20180919145318-efcd4e0f9787
+
+replace github.com/Masterminds/vcs => github.com/alauda/vcs v1.13.2-0.20200311111907-acd482b1ae9a
 
 require k8s.io/kubernetes v1.15.0
 
@@ -39,6 +43,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
+	github.com/Masterminds/vcs v1.13.1
 	github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446
 	github.com/alauda/helm-crds v0.0.0-20191219064609-456571553411
 	github.com/containerd/containerd v1.3.2 // indirect
@@ -57,15 +62,20 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/gsamokovarov/assert v0.0.0-20180414063448-8cd8ab63a335
 	github.com/huandu/xstrings v1.2.1 // indirect
+	github.com/kr/pretty v0.2.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/common v0.2.0
+	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c
 	github.com/thoas/go-funk v0.5.0
@@ -73,7 +83,12 @@ require (
 	github.com/ventu-io/go-shortid v0.0.0-20170305092000-935de6796a71 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
+	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d // indirect
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
+	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
+	gopkg.in/src-d/go-git.v4 v4.13.1
 	helm.sh/helm v3.0.0-alpha.1.0.20190613170622-c35dbb7aabf8+incompatible
 	k8s.io/api v0.16.4
 	k8s.io/apiextensions-apiserver v0.0.0

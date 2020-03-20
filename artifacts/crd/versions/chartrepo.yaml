@@ -1,0 +1,46 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: chartrepos.app.alauda.io
+spec:
+  group: app.alauda.io
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: false
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            required:
+              - url
+              - type
+  - name: v1beta1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            required:
+              - url
+  names:
+    kind: ChartRepo
+    listKind: ChartRepoList
+    plural: chartrepos
+    singular: chartrepo
+    shortNames:
+      - ctr
+  additionalPrinterColumns:
+    - name: URL
+      type: string
+      description: The url of this chart repo
+      JSONPath: .spec.url
+    - name: Phase
+      type: string
+      description: The phase of this ChartRepo
+      JSONPath: .status.phase
+    - name: Age
+      type: date
+      JSONPath: .metadata.creationTimestamp
+  scope: Namespaced

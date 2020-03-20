@@ -2,12 +2,12 @@ package chartrepo
 
 import (
 	"context"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -26,21 +26,21 @@ func InstallDefaultChartRepo(cfg *rest.Config, ns string) error {
 }
 
 func installStableRepo(client *clientset.Clientset, ns string) (bool, error) {
-	data := v1alpha1.ChartRepo{
+	data := v1beta1.ChartRepo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "stable",
 			Namespace: ns,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ChartRepo",
-			APIVersion: "app.alauda.io/v1alpha1",
+			APIVersion: "app.alauda.io/v1beta1",
 		},
-		Spec: v1alpha1.ChartRepoSpec{
+		Spec: v1beta1.ChartRepoSpec{
 			URL: "https://kubernetes-charts.storage.googleapis.com",
 		},
 	}
 
-	_, err := client.AppV1alpha1().ChartRepos(ns).Create(&data)
+	_, err := client.AppV1beta1().ChartRepos(ns).Create(&data)
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			klog.Info("default chartrepo already exist, skip...")

@@ -98,6 +98,7 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
+	// If we send event here, HelmRequest enabled installToAllCluster will send
 	c.getEventRecorder(helmRequest).Event(helmRequest, v1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
 }

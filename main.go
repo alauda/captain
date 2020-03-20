@@ -24,6 +24,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 	"time"
 
 	"github.com/alauda/captain/pkg/chartrepo"
@@ -35,6 +36,7 @@ import (
 	"github.com/alauda/captain/pkg/controller"
 	"github.com/alauda/captain/pkg/webhook"
 	alaudaiov1alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,6 +56,8 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = alaudaiov1alpha1.AddToScheme(scheme)
+
+	_ = v1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -98,6 +102,7 @@ func main() {
 		Log:       ctrl.Log.WithName("controllers").WithName("ChartRepo"),
 		Scheme:    mgr.GetScheme(),
 		Namespace: options.ChartRepoNamespace,
+		CommitMap: sync.Map{},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ChartRepo")
 		os.Exit(1)
@@ -124,6 +129,7 @@ func main() {
 		setupLog.Error(err, "inject data to webhook error")
 		os.Exit(1)
 	}
+	setupLog.Info("inject cert data to webhook")
 
 	// add cluster refresher
 	cr := cluster.NewClusterRefresher(options.ClusterNamespace, mgr.GetConfig())
