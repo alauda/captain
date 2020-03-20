@@ -1,0 +1,17 @@
+apiVersion: app.alauda.io/v1beta1
+kind: ChartRepo
+metadata:
+  annotations:
+    alauda.io/last-sync-at: "2020-02-13T05:56:08Z"
+  creationTimestamp: "2019-12-06T02:56:40Z"
+  generation: 2
+  name: test-stable
+  namespace: cpaas-system
+spec:
+  url: http://chartmuseum:chartmuseum@192.168.16.90:8088/org1/repo1
+  secret:
+    name: new
+  type: Git
+  source:
+    url: git@example.com/org1/repo
+    path: "/charts"

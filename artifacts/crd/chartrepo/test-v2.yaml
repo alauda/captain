@@ -1,0 +1,11 @@
+apiVersion: app.alauda.io/v1beta1
+kind: ChartRepo
+metadata:
+  name: test-v2
+  namespace: cpaas-system
+spec:
+  source:
+    path: /test2
+    url: https://github.com/alauda/captain-test-charts
+  type: Git
+  url: http://chartmuseum:chartmuseum@192.168.16.90:8088/org1/repo1

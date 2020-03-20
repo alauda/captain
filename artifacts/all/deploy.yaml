@@ -52,11 +52,28 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: chartrepos.app.alauda.io
-  annotations:
-    "helm.sh/hook": crd-install
 spec:
   group: app.alauda.io
-  version: v1alpha1
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: false
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              required:
+                - url
+                - type
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              required:
+                - url
   names:
     kind: ChartRepo
     listKind: ChartRepoList
@@ -77,37 +94,36 @@ spec:
       type: date
       JSONPath: .metadata.creationTimestamp
   scope: Namespaced
-  validation:
-    # openAPIV3Schema is the schema for validating custom objects.
-    openAPIV3Schema:
-      properties:
-        spec:
-          required:
-            - url
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-    name: charts.app.alauda.io
+  name: charts.app.alauda.io
 spec:
-    group: app.alauda.io
-    version: v1alpha1
-    names:
-        kind: Chart
-        listKind: ChartList
-        plural: charts
-        singular: chart
-    additionalPrinterColumns:
-        - name: Version
-          type: string
-          JSONPath: .spec.versions[0].version
-        - name: AppVersion
-          type: string
-          JSONPath: .spec.versions[0].appVersion
-        - name: Age
-          type: date
-          JSONPath: .metadata.creationTimestamp
-    scope: Namespaced
+  group: app.alauda.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: false
+    - name: v1beta1
+      served: true
+      storage: true
+  names:
+    kind: Chart
+    listKind: ChartList
+    plural: charts
+    singular: chart
+  additionalPrinterColumns:
+    - name: Version
+      type: string
+      JSONPath: .spec.versions[0].version
+    - name: AppVersion
+      type: string
+      JSONPath: .spec.versions[0].appVersion
+    - name: Age
+      type: date
+      JSONPath: .metadata.creationTimestamp
+  scope: Namespaced
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration

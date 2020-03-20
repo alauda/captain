@@ -1,0 +1,16 @@
+apiVersion: app.alauda.io/v1beta1
+kind: ChartRepo
+metadata:
+  name: svn
+  namespace: cpaas-system
+spec:
+  source:
+    path: /
+    url: http://192.168.16.91:31029/svn/repo1
+  type: Svn
+  secret:
+    name: svn-ctr
+
+
+# create secret
+# kubectl create secret generic svn-ctr -n cpaas-system --from-literal=username=tom --from-literal=password=tom
