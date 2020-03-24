@@ -3,7 +3,6 @@ captain
 .helm
 docs
 .git
-bin
 charts
 old-code
 
