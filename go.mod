@@ -8,6 +8,8 @@ replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 
+replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200311033314-5e41368b07e2
+
 require k8s.io/kubernetes v1.15.0
 
 replace (
@@ -34,7 +36,6 @@ replace (
 )
 
 require (
-	github.com/Jeffail/gabs/v2 v2.3.0
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect

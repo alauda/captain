@@ -21,9 +21,16 @@ test: generate fmt vet manifests
 int-test:
 	bash tests.sh
 
+
+mod:
+	GO111MODULE=on GOPROXY=https://goproxy.cn go mod tidy
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager main.go
+
+manager-arm: generate fmt vet mod
+	CGO_ENABLED=0  GOARCH=arm64 go build -ldflags '-w -s' -a -installsuffix cgo -o bin/arm64/manager
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
@@ -74,6 +81,10 @@ generate: controller-gen
 # Build the docker image
 docker-build: test
 	docker build . -t ${IMG}
+
+docker-build-arm: manager-arm
+	docker build -f Dockerfile.arm -t armharbor.alauda.cn/claas/captain:v2.6.1 .
+	docker push armharbor.alauda.cn/claas/captain:v2.6.1
 
 # Push the docker image
 docker-push:
