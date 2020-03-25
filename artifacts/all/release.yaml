@@ -64,7 +64,6 @@ spec:
             spec:
               required:
                 - url
-                - type
     - name: v1beta1
       served: true
       storage: true
@@ -74,6 +73,7 @@ spec:
             spec:
               required:
                 - url
+                - type
   names:
     kind: ChartRepo
     listKind: ChartRepoList
