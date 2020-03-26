@@ -14,6 +14,7 @@ released yet (alpha stage for now), some modifications were made to help impleme
 ## Features
 * HelmRequest and Release CRD, namespace based
 * ChartRepo CRD
+* Git/Svn as ChartRepo
 * Multi cluster support based on [cluster-registry](https://github.com/kubernetes/cluster-registry)
 * Dependency check for HelmRequest (between HelmRequests)
 * `valuesFrom` support: support to ConfigMap or Secret value store
@@ -58,6 +59,7 @@ For the detailed explain and advanced usage, please check the documentation belo
   * [ChartRepo CRD](./docs/chartrepo.md)
   * [Chart CRD](./docs/chart.md)
 * [Multi-Cluster Support](./docs/multi-cluster.md)
+* [Git/SVN as ChartRepo](./docs/vcs-repo.md)
 
 
 ## SDK
@@ -66,10 +68,10 @@ For the detailed explain and advanced usage, please check the documentation belo
 
 
 ## Future Plans
+* Java SDK
+* Auto update of HelmRequest
 
-* Release Version secret support
-* Repo proxy support
-* Data migration tool from Helm2 release to Helm3 Release
+
 
 
 ## Captain Releated Projects
