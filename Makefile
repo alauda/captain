@@ -14,6 +14,10 @@ endif
 all: manager
 
 
+mod:
+	GO111MODULE=on go mod tidy
+
+
 # Run tests
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
