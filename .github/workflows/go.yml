@@ -25,5 +25,11 @@ jobs:
     - name: Get dependencies
       run: make mod
 
+    - name: Lint
+      run: make vet
+
     - name: Build
       run: make manager
+
+    - name: Test
+      run: make test
