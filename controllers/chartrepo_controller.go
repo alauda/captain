@@ -47,6 +47,11 @@ import (
 	"time"
 )
 
+var (
+	// annotation to record a ctr's last sync at timestamp. This was intend to avoid sync chartrepo too frequency
+	LastSyncAt = "cpaas.io/last-sync-at"
+)
+
 // ChartRepoReconciler reconciles a ChartRepo object
 type ChartRepoReconciler struct {
 	client.Client
@@ -575,7 +580,7 @@ func (r *ChartRepoReconciler) updateChartRepoStatus(ctx context.Context, cr *v1b
 		if old.Annotations == nil {
 			old.Annotations = make(map[string]string)
 		}
-		old.Annotations["alauda.io/last-sync-at"] = now
+		old.Annotations[LastSyncAt] = now
 
 	}
 
@@ -590,8 +595,8 @@ func (r *ChartRepoReconciler) isReadyForResync(cr *v1beta1.ChartRepo) bool {
 		return true
 	}
 
-	if cr.GetAnnotations() != nil && cr.GetAnnotations()["alauda.io/last-sync-at"] != "" {
-		last := cr.GetAnnotations()["alauda.io/last-sync-at"]
+	if cr.GetAnnotations() != nil && cr.GetAnnotations()[LastSyncAt] != "" {
+		last := cr.GetAnnotations()[LastSyncAt]
 		// see: https://stackoverflow.com/questions/25845172/parsing-date-string-in-go
 		layout := "2006-01-02T15:04:05Z"
 		t, err := time.Parse(layout, last)
