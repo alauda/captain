@@ -1,6 +1,9 @@
 # Captain
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go Report Card](https://goreportcard.com/badge/github.com/alauda/captain)](https://goreportcard.com/report/github.com/alauda/captain) [![Tag](https://img.shields.io/github/tag/alauda/captain)](https://img.shields.io/github/tag/alauda/captain)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Go Report Card](https://goreportcard.com/badge/github.com/alauda/captain)](https://goreportcard.com/report/github.com/alauda/captain) [![Tag](https://img.shields.io/github/tag/alauda/captain)](https://img.shields.io/github/tag/alauda/captain)
+![Docker Image CI](https://github.com/alauda/captain/workflows/Docker%20Image%20CI/badge.svg)
+![Go](https://github.com/alauda/captain/workflows/Go/badge.svg)
 
 Captain is a Helm 3 Controller
 
