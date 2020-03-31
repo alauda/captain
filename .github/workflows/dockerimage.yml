@@ -7,12 +7,17 @@ on:
     branches: [ master ]
 
 jobs:
-
   build:
-
+    name: docker build
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Build the Docker image
-      run: make docker-build
+    - uses: actions/checkout@master
+    - name: build-push
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        registry: index.alauda.cn
+        repository: claas/captain
+        tags: latest
+        dockerfile: Dockerfile.github
