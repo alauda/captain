@@ -503,6 +503,10 @@ func compareChart(old v1beta1.Chart, new *v1beta1.Chart) bool {
 }
 
 func getChartName(repo, chart string) string {
+	// in harbor, this can happen
+	if strings.Contains(chart, "/") {
+		chart = strings.Replace(chart, "/", ".", -1)
+	}
 	return fmt.Sprintf("%s.%s", strings.ToLower(chart), repo)
 }
 
@@ -574,6 +578,11 @@ func (r *ChartRepoReconciler) updateChartRepoStatus(ctx context.Context, cr *v1b
 
 	old.Status.Phase = phase
 	old.Status.Reason = reason
+
+	// For old v1alpha1 version, set default value
+	if old.Spec.Type == "" {
+		old.Spec.Type = "Chart"
+	}
 
 	if phase == v1beta1.ChartRepoSynced {
 		now, _ := v1.Now().MarshalQueryParameter()
