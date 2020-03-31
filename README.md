@@ -53,6 +53,7 @@ For the detailed explain and advanced usage, please check the documentation belo
 ## Documention
 
 * [How captain works](./docs/captain.md)
+* [Captain Upgrade](./docs/upgrade.md)
 * CRDs explain
   * [HelmRequest CRD](./docs/helmrequest.md)
   * [Release CRD](./docs/release.md)
@@ -60,6 +61,7 @@ For the detailed explain and advanced usage, please check the documentation belo
   * [Chart CRD](./docs/chart.md)
 * [Multi-Cluster Support](./docs/multi-cluster.md)
 * [Git/SVN as ChartRepo](./docs/vcs-repo.md)
+* [FAQ](./docs/faq.md)
 
 
 ## SDK
