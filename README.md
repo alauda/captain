@@ -7,6 +7,10 @@
 
 Captain is a Helm 3 Controller
 
+
+![](./docs/imgs/captain-arc-2.png)
+
+
 ## About Helm3 
 
 The [Helm 3 Design Proposal](https://github.com/helm/community/blob/master/helm-v3/000-helm-v3.md) exists for a while and currently it is still under heavy development. Captain comes as the first implementation of Helm v3 Controller based on the Proposal.
@@ -57,13 +61,11 @@ For the detailed explain and advanced usage, please check the documentation belo
 
 * [How captain works](./docs/captain.md)
 * [Captain Upgrade](./docs/upgrade.md)
-* CRDs explain
-  * [HelmRequest CRD](./docs/helmrequest.md)
-  * [Release CRD](./docs/release.md)
-  * [ChartRepo CRD](./docs/chartrepo.md)
-  * [Chart CRD](./docs/chart.md)
+* [CRDs explain](./docs/crd.md)
 * [Multi-Cluster Support](./docs/multi-cluster.md)
 * [Git/SVN as ChartRepo](./docs/vcs-repo.md)
+* [Annotations](./docs/ano.md)
+* [ARM64 Support](./docs/arm64.md)
 * [FAQ](./docs/faq.md)
 
 
