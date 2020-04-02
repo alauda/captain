@@ -33,7 +33,7 @@ jobs:
       run: make mod
 
     - name: Lint
-      run: make vet
+      run: make fmt && make vet
 
     - name: Build
       run: make manager
