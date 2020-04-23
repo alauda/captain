@@ -90,7 +90,7 @@ multi-build:
 docker-init-arm:
 	docker build -t armharbor.alauda.cn/claas/captain-cert-init -f Dockerfile.init.arm .
 
-docker-captain-arm:
+docker-captain-arm: multi-build
 	docker build -t armharbor.alauda.cn/claas/captain -f Dockerfile.arm .
 
 # Push the docker image

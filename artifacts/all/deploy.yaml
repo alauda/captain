@@ -238,7 +238,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: index.alauda.cn/claas/captain:v1.0.0
+        image: index.alauda.cn/claas/captain:v1.0.1
         imagePullPolicy: IfNotPresent
         name: manager
         resources:
