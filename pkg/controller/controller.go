@@ -18,8 +18,9 @@ package controller
 
 import (
 	"fmt"
-	"github.com/alauda/captain/pkg/helm"
 	"time"
+
+	"github.com/alauda/captain/pkg/helm"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -186,6 +187,11 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	// Start the informer factories to begin populating the informer caches
 	klog.Info("Starting HelmRequest controller")
 
+	// starts other clusters
+	if err := c.startAllClustersWatch(stopCh); err != nil {
+		return err
+	}
+
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.helmRequestSynced); !ok {
@@ -197,11 +203,6 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	for i := 0; i < 2; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 		// go wait.Until(c.runChartRepoWorker, time.Second, stopCh)
-	}
-
-	// starts other clusters
-	if err := c.startAllClustersWatch(stopCh); err != nil {
-		return err
 	}
 
 	klog.Info("Started workers")
