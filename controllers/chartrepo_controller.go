@@ -20,6 +20,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/Masterminds/vcs"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
@@ -30,21 +37,15 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	githttp "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"helm.sh/helm/pkg/repo"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"net/http"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/yaml"
-	"strings"
-	"sync"
-	"time"
 )
 
 var (
@@ -190,6 +191,10 @@ func (r *ChartRepoReconciler) buildChartRepoFromSvn(ctx context.Context, cr *v1b
 		log.Info("svn clone source", "dir", dir, "url", cr.Spec.Source.URL)
 		if err := s.Get(); err != nil {
 			log.Error(err, "checkout svn repo error")
+			// provide a more clearly error message
+			if strings.Contains(err.Error(), "Authentication failed") {
+				return false, errors.New("Authentication failed, probably caused by incorrect username or password")
+			}
 			return false, err
 		}
 
