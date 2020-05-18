@@ -79,6 +79,7 @@ func (d *Deploy) install() (*release.Release, error) {
 		log.Error(err, "not installable error")
 		return nil, err
 	}
+	d.HelmRequest.Status.Version = chartRequested.Metadata.Version
 
 	if req := chartRequested.Metadata.Dependencies; req != nil {
 		// If CheckDependencies returns an error, we have unfulfilled dependencies.

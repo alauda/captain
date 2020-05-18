@@ -3,7 +3,7 @@ package controller
 import (
 	"reflect"
 
-	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )

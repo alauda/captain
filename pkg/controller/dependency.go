@@ -3,14 +3,14 @@ package controller
 import (
 	"fmt"
 
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"k8s.io/klog"
 )
 
 // getHelmRequestDependencies get dependencies for a HelmRequest resource
 // If the target HelmRequest has no dependencies, return nil. Otherwise get the dependencies and return
-func (c *Controller) getHelmRequestDependencies(hr *v1alpha1.HelmRequest) ([]*v1alpha1.HelmRequest, error) {
-	var data []*v1alpha1.HelmRequest
+func (c *Controller) getHelmRequestDependencies(hr *v1beta1.HelmRequest) ([]*v1beta1.HelmRequest, error) {
+	var data []*v1beta1.HelmRequest
 	deps := hr.Spec.Dependencies
 	if len(deps) == 0 {
 		klog.V(4).Infof("HelmRequest %s has no dependencies", hr.GetName())
@@ -36,7 +36,7 @@ func (c *Controller) getHelmRequestDependencies(hr *v1alpha1.HelmRequest) ([]*v1
 // If the check not pass or somethings goes wrong, return an error contains the detailed reson, this is
 // better than a bool var.
 // TODO: fix when clusterName is ""
-func (c *Controller) checkDependenciesForHelmRequest(hr *v1alpha1.HelmRequest) error {
+func (c *Controller) checkDependenciesForHelmRequest(hr *v1beta1.HelmRequest) error {
 	deps, err := c.getHelmRequestDependencies(hr)
 	if err != nil {
 		return err
@@ -71,6 +71,6 @@ func (c *Controller) checkDependenciesForHelmRequest(hr *v1alpha1.HelmRequest) e
 }
 
 // getHelmRequest get a HelmRequest by namespace and name
-func (c *Controller) getHelmRequest(namespace, name string) (*v1alpha1.HelmRequest, error) {
+func (c *Controller) getHelmRequest(namespace, name string) (*v1beta1.HelmRequest, error) {
 	return c.helmRequestLister.HelmRequests(namespace).Get(name)
 }

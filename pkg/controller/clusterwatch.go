@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/alauda/captain/pkg/util"
-	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	hrScheme "github.com/alauda/helm-crds/pkg/client/clientset/versioned/scheme"
 	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
@@ -57,7 +57,7 @@ func (c *Controller) initClusterWatches(stopCh <-chan struct{}) error {
 		}
 
 		informerFactory := informers.NewSharedInformerFactory(client, time.Second*30)
-		informer := informerFactory.App().V1alpha1().HelmRequests()
+		informer := informerFactory.App().V1beta1().HelmRequests()
 		c.clusterHelmRequestListers[cluster.Name] = informer.Lister()
 		c.clusterHelmRequestSynced[cluster.Name] = informer.Informer().HasSynced
 		c.clusterWorkQueues[cluster.Name] = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), cluster.Name)

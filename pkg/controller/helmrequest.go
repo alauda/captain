@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -8,8 +9,9 @@ import (
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"github.com/thoas/go-funk"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,9 +83,9 @@ func (c *Controller) syncHandler(key string) error {
 
 		if helm.IsHelmRequestSynced(helmRequest) {
 			klog.Infof("HelmRequest %s synced", helmRequest.Name)
-			if helmRequest.Status.Phase != v1alpha1.HelmRequestSynced {
+			if helmRequest.Status.Phase != v1beta1.HelmRequestSynced {
 				klog.Infof("helm request phase not synced, trying to set it")
-				return c.updateHelmRequestPhase(helmRequest, v1alpha1.HelmRequestSynced)
+				return c.updateHelmRequestPhase(helmRequest, v1beta1.HelmRequestSynced)
 			}
 			return nil
 		}
@@ -104,7 +106,7 @@ func (c *Controller) syncHandler(key string) error {
 }
 
 // syncToCluster install/update HelmRequest to one cluster
-func (c *Controller) syncToCluster(helmRequest *v1alpha1.HelmRequest) error {
+func (c *Controller) syncToCluster(helmRequest *v1beta1.HelmRequest) error {
 	clusterName := c.getDeployCluster(helmRequest)
 	info, err := c.getClusterInfo(clusterName)
 	if err != nil {
@@ -146,7 +148,7 @@ func (c *Controller) deleteHandler(obj interface{}) {
 		return
 	}
 
-	hr := obj.(*v1alpha1.HelmRequest)
+	hr := obj.(*v1beta1.HelmRequest)
 
 	err = c.deleteHelmRequest(hr)
 	if err != nil {
@@ -161,7 +163,7 @@ func (c *Controller) deleteHandler(obj interface{}) {
 
 // deleteHelmRequest delete the installed chart about this HelmRequest
 // if InstallToAllClusters=true, delete it from all clusters
-func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
+func (c *Controller) deleteHelmRequest(hr *v1beta1.HelmRequest) error {
 	// get clusters
 	var clusters []*cluster.Info
 	if hr.Spec.InstallToAllClusters {
@@ -223,13 +225,13 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 }
 
 // removeFinalizer remove all the finalizers of this HelmRequest
-func (c *Controller) removeFinalizer(helmRequest *v1alpha1.HelmRequest) error {
+func (c *Controller) removeFinalizer(helmRequest *v1beta1.HelmRequest) error {
 	// captain.alauda.io is the old finalizer, this should provide some backword compatibility
 	if funk.Contains(helmRequest.Finalizers, util.FinalizerName) || funk.Contains(helmRequest.Finalizers, "captain.alauda.io") {
 		klog.Infof("found finalizers for helmrequest: %s", helmRequest.Name)
 		data := `{"metadata":{"finalizers":null}}`
 		// ? only patch can work?
-		_, err := c.getAppClient(helmRequest).AppV1alpha1().HelmRequests(helmRequest.Namespace).Patch(
+		_, err := c.getAppClient(helmRequest).AppV1beta1().HelmRequests(helmRequest.Namespace).Patch(
 			helmRequest.Name, types.MergePatchType, []byte(data),
 		)
 		return err
@@ -239,7 +241,7 @@ func (c *Controller) removeFinalizer(helmRequest *v1alpha1.HelmRequest) error {
 
 // updateHelmRequestPhase update a helmrequest status
 // If this helmrequest not exist already(delete by user, remove the release)
-func (c *Controller) updateHelmRequestPhase(helmRequest *v1alpha1.HelmRequest, phase v1alpha1.HelmRequestPhase) error {
+func (c *Controller) updateHelmRequestPhase(helmRequest *v1beta1.HelmRequest, phase v1beta1.HelmRequestPhase) error {
 	request := helmRequest.DeepCopy()
 	request.Status.Phase = phase
 
@@ -249,11 +251,11 @@ func (c *Controller) updateHelmRequestPhase(helmRequest *v1alpha1.HelmRequest, p
 	// we must use Update instead of UpdateStatus to update the Status block of the HelmRequest resource.
 	// UpdateStatus will not allow changes to the Spec of the resource,
 	// which is ideal for ensuring nothing other than resource status has been updated.
-	_, err := client.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(request)
+	_, err := client.AppV1beta1().HelmRequests(helmRequest.Namespace).UpdateStatus(request)
 	if err != nil {
 		if apierrors.IsConflict(err) {
 			klog.Warning("update helm request status conflict, retry...")
-			origin, err := client.AppV1alpha1().HelmRequests(helmRequest.Namespace).Get(helmRequest.Name, metav1.GetOptions{})
+			origin, err := client.AppV1beta1().HelmRequests(helmRequest.Namespace).Get(helmRequest.Name, metav1.GetOptions{})
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					klog.Warning("helmrequest not found when trying to update status, delete the release...", helmRequest.Name)
@@ -263,10 +265,27 @@ func (c *Controller) updateHelmRequestPhase(helmRequest *v1alpha1.HelmRequest, p
 			}
 			klog.Warningf("origin status: %+v, current: %+v", origin.Status, request.Status)
 			origin.Status = *request.Status.DeepCopy()
-			_, err = client.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(origin)
+			_, err = client.AppV1beta1().HelmRequests(helmRequest.Namespace).UpdateStatus(origin)
 			if err != nil {
 				klog.Error("retrying update helmrequest status error:", err)
 			}
+			return err
+		}
+		if strings.Contains(err.Error(), "apiVersion: Invalid value") {
+			klog.Warning("may be old hr version, retry")
+
+			temp, err := json.Marshal(request)
+			if err != nil {
+				klog.Error("convert hr error", err)
+				return err
+			}
+			var old v1alpha1.HelmRequest
+			err = json.Unmarshal(temp, &old)
+			if err != nil {
+				klog.Error("convert back hr error", err)
+				return err
+			}
+			_, err = client.AppV1alpha1().HelmRequests(helmRequest.Namespace).UpdateStatus(&old)
 			return err
 		}
 		klog.Errorf("update status for helmrequest %s error: %s", helmRequest.Name, err.Error())

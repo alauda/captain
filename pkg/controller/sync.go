@@ -8,7 +8,7 @@ import (
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/release"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"github.com/thoas/go-funk"
 	"helm.sh/helm/pkg/action"
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +19,7 @@ import (
 )
 
 // syncToAllClusters install/upgrade release in all the clusters
-func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmRequest) error {
+func (c *Controller) syncToAllClusters(key string, helmRequest *v1beta1.HelmRequest) error {
 	clusters, err := c.getAllClusters()
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 	// if not equal, we need to update helm status first
 	if !equal {
 		helmRequest.Status.SyncedClusters = make([]string, 0)
-		if err := c.updateHelmRequestPhase(helmRequest, v1alpha1.HelmRequestPending); err != nil {
+		if err := c.updateHelmRequestPhase(helmRequest, v1beta1.HelmRequestPending); err != nil {
 			return err
 		}
 	} else if helmRequest.Status.SyncedClusters != nil {
@@ -74,7 +74,7 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 }
 
 // sync install/update chart to one cluster
-func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest) error {
+func (c *Controller) sync(info *cluster.Info, helmRequest *v1beta1.HelmRequest) error {
 	ci := *info
 	ci.Namespace = helmRequest.Spec.Namespace
 	if err := release.EnsureCRDCreated(info.ToRestConfig()); err != nil {

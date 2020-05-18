@@ -2,7 +2,7 @@ package helm
 
 import (
 	"github.com/alauda/captain/pkg/cluster"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"github.com/go-logr/logr"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -36,7 +36,7 @@ type Deploy struct {
 	SystemNamespace string
 
 	// all the charts info
-	HelmRequest *v1alpha1.HelmRequest
+	HelmRequest *v1beta1.HelmRequest
 }
 
 func NewDeploy() *Deploy {
@@ -101,6 +101,7 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	if err != nil {
 		return nil, err
 	}
+	d.HelmRequest.Status.Version = ch.Metadata.Version
 
 	if req := ch.Metadata.Dependencies; req != nil {
 		if err := action.CheckDependencies(ch, req); err != nil {

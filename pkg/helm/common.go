@@ -3,14 +3,14 @@ package helm
 import (
 	"github.com/alauda/captain/pkg/util"
 	"github.com/alauda/component-base/hash"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"helm.sh/helm/pkg/helmpath"
 )
 
 // GenUniqueHash generate a unique hash for a HelmRequest
-func GenUniqueHash(hr *v1alpha1.HelmRequest) string {
+func GenUniqueHash(hr *v1beta1.HelmRequest) string {
 	source := struct {
-		spec        v1alpha1.HelmRequestSpec
+		spec        v1beta1.HelmRequestSpec
 		annotations map[string]string
 	}{
 		hr.Spec,
@@ -23,7 +23,7 @@ func GenUniqueHash(hr *v1alpha1.HelmRequest) string {
 // only if hash is equal and not install to all clusters
 // First version: only hash .spec
 // Second version: hash .spec and .metadata.annotations
-func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
+func IsHelmRequestSynced(hr *v1beta1.HelmRequest) bool {
 	current := GenUniqueHash(hr)
 	if current == hr.Status.LastSpecHash {
 		return true
@@ -42,7 +42,7 @@ func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
 }
 
 // getReleaseName get release name
-func getReleaseName(hr *v1alpha1.HelmRequest) string {
+func getReleaseName(hr *v1beta1.HelmRequest) string {
 	name := hr.GetName()
 	if hr.Spec.ReleaseName != "" {
 		name = hr.Spec.ReleaseName

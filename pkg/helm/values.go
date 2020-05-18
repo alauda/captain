@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"github.com/ghodss/yaml"
 	"helm.sh/helm/pkg/chartutil"
 	v1 "k8s.io/api/core/v1"
@@ -47,7 +47,7 @@ func mergeValues(dest, src Values) Values {
 }
 
 // getValues merges all values settings from spec/configmap/secret...
-func getValues(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, error) {
+func getValues(hr *v1beta1.HelmRequest, cfg *rest.Config) (chartutil.Values, error) {
 	values, err := getValuesFromSource(hr, cfg)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func getValues(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, er
 
 }
 
-func getValuesFromSource(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.Values, error) {
+func getValuesFromSource(hr *v1beta1.HelmRequest, cfg *rest.Config) (chartutil.Values, error) {
 	klog.V(2).Infof("in cluster rest config is: %+v", cfg)
 	client, err := kubernetes.NewForConfig(cfg)
 	if err != nil {

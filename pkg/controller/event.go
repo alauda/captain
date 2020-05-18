@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -33,12 +33,12 @@ const (
 )
 
 // sendFailedDeleteEvent send a failed event when delete error
-func (c *Controller) sendFailedDeleteEvent(hr *v1alpha1.HelmRequest, err error) {
+func (c *Controller) sendFailedDeleteEvent(hr *v1beta1.HelmRequest, err error) {
 	c.getEventRecorder(hr).Event(hr, corev1.EventTypeWarning, FailedDelete,
 		fmt.Sprintf("Delete HelmRequest %s error : %s", hr.GetName(), err.Error()))
 }
 
 // sendFailedSyncEvent send a event when failed to sync a resource
-func (c *Controller) sendFailedSyncEvent(hr *v1alpha1.HelmRequest, err error) {
+func (c *Controller) sendFailedSyncEvent(hr *v1beta1.HelmRequest, err error) {
 	c.getEventRecorder(hr).Event(hr, corev1.EventTypeWarning, FailedSync, err.Error())
 }

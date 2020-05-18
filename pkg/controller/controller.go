@@ -35,12 +35,12 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	commoncache "github.com/patrickmn/go-cache"
 
 	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
-	listers "github.com/alauda/helm-crds/pkg/client/listers/app/v1alpha1"
+	listers "github.com/alauda/helm-crds/pkg/client/listers/app/v1beta1"
 	clusterclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
@@ -120,7 +120,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 	appInformerFactory := informers.NewSharedInformerFactory(appClient, time.Second*30)
 	// chartRepoInformerFactory := informers.NewSharedInformerFactoryWithOptions(appClient, time.Second*30, informers.WithNamespace(opt.ChartRepoNamespace))
 
-	informer := appInformerFactory.App().V1alpha1().HelmRequests()
+	informer := appInformerFactory.App().V1beta1().HelmRequests()
 	// repoInformer := chartRepoInformerFactory.App().V1alpha1().ChartRepos()
 
 	controller := &Controller{
