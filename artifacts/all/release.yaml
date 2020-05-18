@@ -5,7 +5,13 @@ metadata:
   name: helmrequests.app.alauda.io
 spec:
   group: app.alauda.io
-  version: v1alpha1
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: false
+    - name: v1beta1
+      served: true
+      storage: true
   names:
     kind: HelmRequest
     listKind: HelmRequestList
@@ -136,7 +142,7 @@ webhooks:
     caBundle: Cg==
     service:
       name: captain-webhook
-      namespace: captain-system
+      namespace: cpaas-system
       path: /mutate
   failurePolicy: Fail
   name: mutate-helmrequest.app.alauda.io
@@ -167,7 +173,7 @@ webhooks:
     caBundle: Cg==
     service:
       name: captain-webhook
-      namespace: captain-system
+      namespace: cpaas-system
       path: /validate
   failurePolicy: Fail
   name: validate-helmrequest.app.alauda.io

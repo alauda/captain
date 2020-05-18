@@ -4,7 +4,7 @@ go 1.13
 
 replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200317070656-13455963468a+incompatible
 
-replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200311033314-5e41368b07e2
+replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200518084343-b376cda81459
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 

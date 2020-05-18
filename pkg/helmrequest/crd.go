@@ -2,7 +2,7 @@ package helmrequest
 
 import (
 	"github.com/alauda/component-base/crd"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	extensionsobj "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -12,16 +12,27 @@ import (
 // CRD file and example is in $CAPTAIN_ROOT/artifacts/crd/*.yaml
 var CRD = &extensionsobj.CustomResourceDefinition{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "helmrequests." + v1alpha1.SchemeGroupVersion.Group,
+		Name: "helmrequests." + v1beta1.SchemeGroupVersion.Group,
 	},
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
 		APIVersion: "apiextensions.k8s.io/v1beta1",
 	},
 	Spec: extensionsobj.CustomResourceDefinitionSpec{
-		Group:   v1alpha1.SchemeGroupVersion.Group,
-		Version: v1alpha1.SchemeGroupVersion.Version,
-		Scope:   extensionsobj.ResourceScope("Namespaced"),
+		Group: v1beta1.SchemeGroupVersion.Group,
+		Versions: []extensionsobj.CustomResourceDefinitionVersion{
+			{
+				Name:    "v1alpha1",
+				Served:  true,
+				Storage: false,
+			},
+			{
+				Name:    "v1beta1",
+				Served:  true,
+				Storage: true,
+			},
+		},
+		Scope: extensionsobj.ResourceScope("Namespaced"),
 		Names: extensionsobj.CustomResourceDefinitionNames{
 			Plural:     "helmrequests",
 			Singular:   "helmrequest",

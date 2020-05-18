@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -27,14 +28,14 @@ func RegisterHandlers(mgr manager.Manager) error {
 		return err
 	}
 
-	handler := admission.ValidatingWebhookFor(&v1alpha1.HelmRequest{})
+	handler := admission.ValidatingWebhookFor(&v1beta1.HelmRequest{})
 	if err := handler.InjectLogger(log.Log.WithName("validating")); err != nil {
 		wLog.Error(err, "inject logger to validating webhook handler error: ")
 		return err
 	}
 	ws.Register("/validate", handler)
 
-	handler = admission.DefaultingWebhookFor(&v1alpha1.HelmRequest{})
+	handler = admission.DefaultingWebhookFor(&v1beta1.HelmRequest{})
 	if err := handler.InjectLogger(log.Log.WithName("mutating")); err != nil {
 		wLog.Error(err, "inject logger to mutating webhook handler error: ")
 		return err
