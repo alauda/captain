@@ -1,6 +1,10 @@
 package helm
 
 import (
+	"os"
+	"strings"
+	"time"
+
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"github.com/go-logr/logr"
@@ -12,10 +16,7 @@ import (
 	"helm.sh/helm/pkg/chart/loader"
 	"helm.sh/helm/pkg/cli"
 	"helm.sh/helm/pkg/release"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"strings"
-	"time"
 )
 
 // Deploy contains info about one chart deploy
@@ -101,6 +102,7 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	if err != nil {
 		return nil, err
 	}
+	d.HelmRequest.Status.Version = ch.Metadata.Version
 
 	if req := ch.Metadata.Dependencies; req != nil {
 		if err := action.CheckDependencies(ch, req); err != nil {

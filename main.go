@@ -19,16 +19,16 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sync"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/alauda/captain/pkg/chartrepo"
-	"github.com/alauda/captain/pkg/util"
 
 	"github.com/alauda/captain/controllers"
 	"github.com/alauda/captain/pkg/cluster"
@@ -139,10 +139,10 @@ func main() {
 	}
 
 	// install HelmRequest CRD
-	if err := util.InstallCRDIfRequired(mgr.GetConfig(), options.InstallCRD); err != nil {
-		setupLog.Error(err, "Error install CRD")
-		os.Exit(1)
-	}
+	// if err := util.InstallCRDIfRequired(mgr.GetConfig(), options.InstallCRD); err != nil {
+	// 	setupLog.Error(err, "Error install CRD")
+	//	os.Exit(1)
+	// }
 
 	// install default chartrepo
 	if options.InstallStableRepo {

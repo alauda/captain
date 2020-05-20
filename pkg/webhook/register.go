@@ -3,6 +3,7 @@ package webhook
 import (
 	"bytes"
 	"encoding/base64"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -26,7 +27,8 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 
 	mw, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get("captain-mutating-webhook-configuration", metav1.GetOptions{})
 	if err != nil {
-		return err
+		wLog.Error(err, "get mutate webhook error, ignore")
+		return nil
 	}
 
 	equal := bytes.Compare(mw.Webhooks[0].ClientConfig.CABundle, decoded)
@@ -46,7 +48,8 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 
 	vw, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get("captain-validating-webhook-configuration", metav1.GetOptions{})
 	if err != nil {
-		return err
+		wLog.Error(err, "get valite webhook error , ignore")
+		return nil
 	}
 
 	if bytes.Compare(vw.Webhooks[0].ClientConfig.CABundle, decoded) != 0 {
