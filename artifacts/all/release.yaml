@@ -239,7 +239,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: index.alauda.cn/claas/captain:v1.0.1
+        image: harbor-b.alauda.cn/acp/captain:v1.1.0
         imagePullPolicy: IfNotPresent
         name: manager
         resources:
@@ -270,7 +270,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: index.alauda.cn/claas/captain-cert-init
+        image: habror-b.alauda.cn/acp/captain-cert-init:latest
         imagePullPolicy: IfNotPresent
         name: cert-init
 ---
@@ -323,7 +323,7 @@ spec:
               value: local
             - name: STORAGE_LOCAL_ROOTDIR
               value: /charts
-          image: index.alauda.cn/claas/chartmuseum:latest
+          image: harbor-b.alauda.cn/acp/chartmuseum:latest
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /charts

@@ -97,6 +97,9 @@ docker-captain-arm: multi-build
 docker-push:
 	docker tag captain index.alauda.cn/claas/captain
 	docker push index.alauda.cn/claas/captain
+	docker tag captain harbor-b.alauda.cn/acp/captain
+	docker push harbor-b.alauda.cn/acp/captain
+
 
 # find or download controller-gen
 # download controller-gen if necessary
