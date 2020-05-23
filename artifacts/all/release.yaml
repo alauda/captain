@@ -239,7 +239,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: harbor-b.alauda.cn/acp/captain:v1.1.0
+        image: harbor.alauda.cn/acp/captain:v1.1.0
         imagePullPolicy: IfNotPresent
         name: manager
         resources:
@@ -270,7 +270,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: habror-b.alauda.cn/acp/captain-cert-init:latest
+        image: harbor.alauda.cn/acp/captain-cert-init:latest
         imagePullPolicy: IfNotPresent
         name: cert-init
 ---
