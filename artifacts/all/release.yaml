@@ -323,7 +323,7 @@ spec:
               value: local
             - name: STORAGE_LOCAL_ROOTDIR
               value: /charts
-          image: harbor-b.alauda.cn/acp/chartmuseum:latest
+          image: harbor.alauda.cn/acp/chartmuseum:latest
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /charts
