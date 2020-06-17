@@ -1,0 +1,9 @@
+apiVersion: app.alauda.io/v1beta1
+kind: ChartRepo
+metadata:
+  name: local
+  namespace: cpaas-system
+spec:
+  type: Local
+
+
