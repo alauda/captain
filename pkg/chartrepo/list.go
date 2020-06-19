@@ -125,7 +125,7 @@ func GetChart(name, version, ns string, cfg *rest.Config) (*repo.ChartVersion, e
 		return nil, err
 	}
 
-	chart, err := client.AppV1alpha1().Charts(ns).Get(name, metav1.GetOptions{})
+	chart, err := client.AppV1beta1().Charts(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
