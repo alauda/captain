@@ -137,6 +137,13 @@ func (r *ChartRepoReconciler) syncChartRepo(cr *v1beta1.ChartRepo, ctx context.C
 		}
 	}
 
+	// For local repo ,we just assume they are synced and wait for the first chart post
+	if cr.Spec.Type == "Local" {
+		if err := r.updateChartRepoURL(ctx, cr); err != nil {
+			return err
+		}
+	}
+
 	if cr.Spec.Type == "SVN" {
 		flag, err := r.buildChartRepoFromSvn(ctx, cr)
 		if err != nil {
