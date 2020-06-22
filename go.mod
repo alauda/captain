@@ -77,6 +77,7 @@ require (
 	github.com/prometheus/common v0.2.0
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
+	github.com/spf13/cast v1.3.1
 	github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c
 	github.com/thoas/go-funk v0.5.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect

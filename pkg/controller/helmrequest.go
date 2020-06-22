@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/spf13/cast"
 	"strings"
 
 	"github.com/alauda/captain/pkg/cluster"
@@ -137,6 +138,29 @@ func (c *Controller) enqueueHelmRequest(obj interface{}) {
 	c.workQueue.Add(key)
 }
 
+func (c *Controller) isOldEvent(cluster string, hr *v1alpha1.HelmRequest) (bool, error) {
+	// Get the HelmRequest resource with this namespace/name
+	current, err := c.getHelmRequestLister(cluster).HelmRequests(hr.Namespace).Get(hr.Name)
+	if err != nil {
+		// The HelmRequest resource may no longer exist, in which case we stop
+		// processing.
+		if errors.IsNotFound(err) {
+			klog.Info("helmrequest not found when check version for delete, ignore")
+			return true, nil
+		}
+		return false, err
+	}
+
+	received := cast.ToInt(hr.ResourceVersion)
+	exist := cast.ToInt(current.ResourceVersion)
+
+	if received < exist {
+		klog.Warningf("received old delete event for helmrequest: %s %d %d", hr.Name, received, exist)
+		return true, nil
+	}
+	return false, nil
+}
+
 // deleteHandler is delete handler for HelmRequest in global cluster
 func (c *Controller) deleteHandler(obj interface{}) {
 	var err error
@@ -147,6 +171,20 @@ func (c *Controller) deleteHandler(obj interface{}) {
 	}
 
 	hr := obj.(*v1alpha1.HelmRequest)
+
+	klog.Infof("receive delete event: %+v", hr)
+
+	outdated, err := c.isOldEvent("", hr)
+	if err != nil {
+		c.sendFailedDeleteEvent(hr, err)
+		runtime.HandleError(err)
+		c.workQueue.AddRateLimited(key)
+		return
+	}
+
+	if outdated {
+		return
+	}
 
 	err = c.deleteHelmRequest(hr)
 	if err != nil {

@@ -41,8 +41,8 @@ func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
 	return false
 }
 
-// getReleaseName get release name
-func getReleaseName(hr *v1alpha1.HelmRequest) string {
+// GetReleaseName get release name
+func GetReleaseName(hr *v1alpha1.HelmRequest) string {
 	name := hr.GetName()
 	if hr.Spec.ReleaseName != "" {
 		name = hr.Spec.ReleaseName

@@ -59,7 +59,7 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	log := d.Log
 	hr := d.HelmRequest
 
-	name := getReleaseName(hr)
+	name := GetReleaseName(hr)
 	out := os.Stdout
 
 	// helm settings

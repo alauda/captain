@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -246,6 +246,19 @@ func (c *Controller) deleteClusterHelmRequestHandler(obj interface{}, name strin
 	}
 
 	hr := obj.(*alpha1.HelmRequest)
+	klog.Infof("receive delete event, cluster %s, : %+v", name, hr)
+
+	outdated, err := c.isOldEvent(name, hr)
+	if err != nil {
+		c.sendFailedDeleteEvent(hr, err)
+		utilruntime.HandleError(err)
+		c.clusterWorkQueues[name].AddRateLimited(clusterKey(key, name))
+		return
+	}
+
+	if outdated {
+		return
+	}
 
 	hr = hr.DeepCopy()
 	hr.ClusterName = name
