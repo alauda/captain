@@ -94,7 +94,7 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 		return err
 	}
 	options := metav1.ListOptions{
-		LabelSelector: kblabels.Set{"name": helmRequest.GetName()}.AsSelector().String(),
+		LabelSelector: kblabels.Set{"name": helm.GetReleaseName(helmRequest)}.AsSelector().String(),
 	}
 	hist, err := client.AppV1alpha1().Releases(helmRequest.Spec.Namespace).List(options)
 	deployed := false

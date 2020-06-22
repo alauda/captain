@@ -15,7 +15,7 @@ import (
 func (d *Deploy) Delete() error {
 	hr := d.HelmRequest
 
-	name := getReleaseName(hr)
+	name := GetReleaseName(hr)
 
 	cfg, err := d.newActionConfig()
 	if err != nil {
