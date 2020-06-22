@@ -161,6 +161,13 @@ func (c *Controller) isOldEvent(cluster string, hr *v1alpha1.HelmRequest) (bool,
 		klog.Warningf("received old delete event for helmrequest: %s %d %d", hr.Name, received, exist)
 		return true, nil
 	}
+
+	receivedTimestamp := hr.GetCreationTimestamp()
+	existTimestamp := current.GetCreationTimestamp()
+	if receivedTimestamp.Before(&existTimestamp) {
+		klog.Warningf("received old delete event for helmrequest: %s %s %s", hr.Name, receivedTimestamp.String(), existTimestamp.String())
+	}
+
 	return false, nil
 }
 
