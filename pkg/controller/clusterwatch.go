@@ -248,6 +248,9 @@ func (c *Controller) deleteClusterHelmRequestHandler(obj interface{}, name strin
 	hr := obj.(*alpha1.HelmRequest)
 	klog.Infof("receive delete event, cluster %s, : %+v", name, hr)
 
+	hr = hr.DeepCopy()
+	hr.ClusterName = name
+
 	outdated, err := c.isOldEvent(name, hr)
 	if err != nil {
 		c.sendFailedDeleteEvent(hr, err)
@@ -259,9 +262,6 @@ func (c *Controller) deleteClusterHelmRequestHandler(obj interface{}, name strin
 	if outdated {
 		return
 	}
-
-	hr = hr.DeepCopy()
-	hr.ClusterName = name
 
 	err = c.deleteHelmRequest(hr)
 	if err != nil {
