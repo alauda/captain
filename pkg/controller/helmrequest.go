@@ -140,7 +140,10 @@ func (c *Controller) enqueueHelmRequest(obj interface{}) {
 
 func (c *Controller) isOldEvent(cluster string, hr *v1alpha1.HelmRequest) (bool, error) {
 	// Get the HelmRequest resource with this namespace/name
-	current, err := c.getHelmRequestLister(cluster).HelmRequests(hr.Namespace).Get(hr.Name)
+	// hr should have clusterName set.
+	current, err := c.getAppClient(hr).AppV1alpha1().HelmRequests(hr.Namespace).Get(hr.Name, metav1.GetOptions{})
+	// don't want use the cached one.
+	// current, err := c.getHelmRequestLister(cluster).HelmRequests(hr.Namespace).Get(hr.Name)
 	if err != nil {
 		// The HelmRequest resource may no longer exist, in which case we stop
 		// processing.
@@ -158,6 +161,13 @@ func (c *Controller) isOldEvent(cluster string, hr *v1alpha1.HelmRequest) (bool,
 		klog.Warningf("received old delete event for helmrequest: %s %d %d", hr.Name, received, exist)
 		return true, nil
 	}
+
+	receivedTimestamp := hr.GetCreationTimestamp()
+	existTimestamp := current.GetCreationTimestamp()
+	if receivedTimestamp.Before(&existTimestamp) {
+		klog.Warningf("received old delete event for helmrequest: %s %s %s", hr.Name, receivedTimestamp.String(), existTimestamp.String())
+	}
+
 	return false, nil
 }
 
