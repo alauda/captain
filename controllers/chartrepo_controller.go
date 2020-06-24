@@ -39,7 +39,7 @@ import (
 	"helm.sh/helm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -451,8 +451,13 @@ func (r *ChartRepoReconciler) syncCharts(cr *v1beta1.ChartRepo, ctx context.Cont
 	}
 	for _, item := range charts.Items {
 		name := strings.Split(item.GetName(), ".")[0]
-		existCharts[name] = item
+		//TODO: check out why this broke
+		if strings.Contains(item.GetName(), cr.GetName()) {
+			existCharts[name] = item
+		}
+
 	}
+	log.Info("retrieve charts from cluster", "count", len(charts.Items), "left", len(existCharts))
 
 	for on, versions := range index.Entries {
 		name := strings.ToLower(on)
