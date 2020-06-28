@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/spf13/cast"
 	"strings"
 
 	"github.com/alauda/captain/pkg/cluster"
@@ -67,6 +66,13 @@ func (c *Controller) syncHandler(key string) error {
 			return err
 		}
 		return nil
+	}
+
+	// add finalizer if needed, cluster name is already set
+	if err := c.addFinalizer(helmRequest); err != nil {
+		klog.Errorf("add finalizer for helmrequest %s error, err is: %+v", helmRequest.Name, err)
+		c.sendFailedSyncEvent(helmRequest, err)
+		return err
 	}
 
 	// check dependencies
@@ -138,6 +144,8 @@ func (c *Controller) enqueueHelmRequest(obj interface{}) {
 	c.workQueue.Add(key)
 }
 
+// isOldEvent filters outdated event by compare resource uid
+// in case the resource not exist, we continue to real delete.
 func (c *Controller) isOldEvent(cluster string, hr *v1alpha1.HelmRequest) (bool, error) {
 	// Get the HelmRequest resource with this namespace/name
 	// hr should have clusterName set.
@@ -149,24 +157,29 @@ func (c *Controller) isOldEvent(cluster string, hr *v1alpha1.HelmRequest) (bool,
 		// processing.
 		if errors.IsNotFound(err) {
 			klog.Info("helmrequest not found when check version for delete, ignore")
-			return true, nil
+			return false, nil
 		}
 		return false, err
 	}
 
-	received := cast.ToInt(hr.ResourceVersion)
-	exist := cast.ToInt(current.ResourceVersion)
-
-	if received < exist {
-		klog.Warningf("received old delete event for helmrequest: %s %d %d", hr.Name, received, exist)
+	if current.UID != hr.UID {
+		klog.Warningf("received old delete event for helmrequest: %s %s %s", hr.Name, hr.UID, current.UID)
 		return true, nil
 	}
 
-	receivedTimestamp := hr.GetCreationTimestamp()
-	existTimestamp := current.GetCreationTimestamp()
-	if receivedTimestamp.Before(&existTimestamp) {
-		klog.Warningf("received old delete event for helmrequest: %s %s %s", hr.Name, receivedTimestamp.String(), existTimestamp.String())
-	}
+	//received := cast.ToInt(hr.ResourceVersion)
+	//exist := cast.ToInt(current.ResourceVersion)
+	//
+	//if received < exist {
+	//	klog.Warningf("received old delete event for helmrequest: %s %d %d", hr.Name, received, exist)
+	//	return true, nil
+	//}
+	//
+	//receivedTimestamp := hr.GetCreationTimestamp()
+	//existTimestamp := current.GetCreationTimestamp()
+	//if receivedTimestamp.Before(&existTimestamp) {
+	//	klog.Warningf("received old delete event for helmrequest: %s %s %s", hr.Name, receivedTimestamp.String(), existTimestamp.String())
+	//}
 
 	return false, nil
 }
@@ -268,6 +281,22 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 	klog.Infof("successfully remove finalizers from helmrequest: %s", hr.Name)
 
 	return nil
+}
+
+// addFinalizer add finalizer to a hr
+// 1. support add finalizer for global/business clusters
+// 2. if there is and old hr without finalizer, compare uid of the event and only delete it if only the uid match
+// 3. hr should carry with cluster info
+func (c *Controller) addFinalizer(hr *v1alpha1.HelmRequest) error {
+	if !funk.Contains(hr.Finalizers, util.FinalizerName) {
+		data := `{"metadata":{"finalizers":["captain.cpaas.io"]}}`
+		_, err := c.getAppClient(hr).AppV1alpha1().HelmRequests(hr.Namespace).Patch(
+			hr.Name, types.MergePatchType, []byte(data),
+		)
+		return err
+	}
+	return nil
+
 }
 
 // removeFinalizer remove all the finalizers of this HelmRequest
