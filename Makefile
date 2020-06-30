@@ -88,15 +88,13 @@ multi-build:
 	bash  arch.sh
 
 docker-init-arm:
-	docker build -t armharbor.alauda.cn/claas/captain-cert-init -f Dockerfile.init.arm .
+	docker build -t armharbor.alauda.cn/acp/captain-cert-init -f Dockerfile.init.arm .
 
 docker-captain-arm: multi-build
-	docker build -t armharbor.alauda.cn/claas/captain -f Dockerfile.arm .
+	docker build -t armharbor.alauda.cn/acp/captain -f Dockerfile.arm .
 
 # Push the docker image
 docker-push:
-	docker tag captain index.alauda.cn/claas/captain
-	docker push index.alauda.cn/claas/captain
 	docker tag captain harbor-b.alauda.cn/acp/captain
 	docker push harbor-b.alauda.cn/acp/captain
 
