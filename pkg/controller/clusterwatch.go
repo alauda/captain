@@ -246,9 +246,22 @@ func (c *Controller) deleteClusterHelmRequestHandler(obj interface{}, name strin
 	}
 
 	hr := obj.(*alpha1.HelmRequest)
+	klog.Infof("receive delete event, cluster %s, : %+v", name, hr)
 
 	hr = hr.DeepCopy()
 	hr.ClusterName = name
+
+	outdated, err := c.isOldEvent(name, hr)
+	if err != nil {
+		c.sendFailedDeleteEvent(hr, err)
+		utilruntime.HandleError(err)
+		c.clusterWorkQueues[name].AddRateLimited(clusterKey(key, name))
+		return
+	}
+
+	if outdated {
+		return
+	}
 
 	err = c.deleteHelmRequest(hr)
 	if err != nil {
