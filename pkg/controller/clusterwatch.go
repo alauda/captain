@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/alauda/captain/pkg/cluster"
 	"strings"
 	"time"
 
@@ -38,39 +39,64 @@ func (c *Controller) initClusterWatches(stopCh <-chan struct{}) error {
 			continue
 		}
 
-		cfg := cluster.ToRestConfig()
-		client, err := clientset.NewForConfig(cfg)
-		if err != nil {
-			klog.Warningf("init client for cluster %s error: %s", cluster.Name, err.Error())
+		if err := c.initWatchForCluster(stopCh, cluster); err != nil {
 			continue
 		}
-
-		coreClient, err := kubernetes.NewForConfig(cfg)
-		if err != nil {
-			klog.Warningf("init core client for cluster %s error: %s", cluster.Name, err.Error())
-			continue
-		}
-
-		if err := util.InstallHelmRequestCRD(cfg); err != nil {
-			klog.Warningf("install helmrequest crd for cluster %s error: %s", cluster.Name, err.Error())
-			continue
-		}
-
-		informerFactory := informers.NewSharedInformerFactory(client, time.Second*30)
-		informer := informerFactory.App().V1alpha1().HelmRequests()
-		c.clusterHelmRequestListers[cluster.Name] = informer.Lister()
-		c.clusterHelmRequestSynced[cluster.Name] = informer.Informer().HasSynced
-		c.clusterWorkQueues[cluster.Name] = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), cluster.Name)
-		c.clusterClients[cluster.Name] = client
-		c.clusterRecorders[cluster.Name] = c.createEventRecorder(cluster.Name, coreClient)
-
-		// add event handler
-		informer.Informer().AddEventHandler(c.newClusterHelmRequestHandler(cluster.Name))
-
-		informerFactory.Start(stopCh)
-
-		klog.Info("init watch config for cluster: ", cluster.Name)
 	}
+	return nil
+}
+
+// initWatchForCluster init watch structs for a single cluster
+func (c *Controller) initWatchForCluster(stopCh <-chan struct{}, cluster *cluster.Info) error {
+	cfg := cluster.ToRestConfig()
+	client, err := clientset.NewForConfig(cfg)
+	if err != nil {
+		klog.Warningf("init client for cluster %s error: %s", cluster.Name, err.Error())
+		return err
+	}
+
+	coreClient, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		klog.Warningf("init core client for cluster %s error: %s", cluster.Name, err.Error())
+		return err
+	}
+
+	if err := util.InstallHelmRequestCRD(cfg); err != nil {
+		klog.Warningf("install helmrequest crd for cluster %s error: %s", cluster.Name, err.Error())
+		return err
+	}
+
+	informerFactory := informers.NewSharedInformerFactory(client, defaultResyncDuration)
+	informer := informerFactory.App().V1alpha1().HelmRequests()
+
+	c.clusterHelmRequestListers[cluster.Name] = informer.Lister()
+	c.clusterHelmRequestSynced[cluster.Name] = informer.Informer().HasSynced
+	c.clusterWorkQueues[cluster.Name] = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), cluster.Name)
+	c.clusterClients[cluster.Name] = client
+	c.clusterRecorders[cluster.Name] = c.createEventRecorder(cluster.Name, coreClient)
+
+	// add event handler
+	informer.Informer().AddEventHandler(c.newClusterHelmRequestHandler(cluster.Name))
+
+	informerFactory.Start(stopCh)
+
+	klog.Info("init watch config for cluster: ", cluster.Name)
+	return nil
+}
+
+// restartClusterWatch will restart the failed cluster watches. In this situation, all the hr will be failed at get release client ,
+// so we will trigger from there and try to re-init the watch and restart it
+func (c *Controller) restartClusterWatch(cluster *cluster.Info) error {
+
+	if err := c.initWatchForCluster(c.stopCh, cluster); err != nil {
+		return err
+	}
+
+	if err := c.startClusterWatch(cluster.Name, c.stopCh); err != nil {
+		return err
+	}
+
+	klog.Info("restart watch for cluster done", cluster.Name)
 	return nil
 
 }
