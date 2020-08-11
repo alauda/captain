@@ -72,6 +72,11 @@ var CRD = &extensionsobj.CustomResourceDefinition{
 						Required: []string{
 							"chart",
 						},
+						Properties: map[string]extensionsobj.JSONSchemaProps{
+							"values": {
+								Type: "object",
+							},
+						},
 					},
 				},
 			},
