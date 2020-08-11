@@ -74,7 +74,8 @@ var CRD = &extensionsobj.CustomResourceDefinition{
 						},
 						Properties: map[string]extensionsobj.JSONSchemaProps{
 							"values": {
-								Type: "object",
+								Type:     "object",
+								Nullable: true,
 							},
 						},
 					},
