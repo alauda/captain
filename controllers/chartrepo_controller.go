@@ -7,10 +7,9 @@ You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
+distributed under the 4r is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+elimitations under the License.wr
 */
 
 package controllers
@@ -34,7 +33,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
-	"gopkg.in/src-d/go-git.v4"
 	githttp "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"helm.sh/helm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
@@ -46,11 +44,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/yaml"
+
+	"gopkg.in/src-d/go-git.v4"
 )
 
 var (
 	// annotation to record a ctr's last sync at timestamp. This was intend to avoid sync chartrepo too frequency
 	LastSyncAt = "cpaas.io/last-sync-at"
+
+	transCfg = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	httpClient = &http.Client{Timeout: 30 * time.Second, Transport: transCfg}
 )
 
 // ChartRepoReconciler reconciles a ChartRepo object
@@ -81,6 +86,13 @@ func (r *ChartRepoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var cr v1beta1.ChartRepo
 	if err := r.Get(ctx, req.NamespacedName, &cr); err != nil {
 		log.Error(err, "unable to fetch chartrepo")
+		if isNotFound(err) {
+			log.Info("chart repo not found when processing, conside it deleted, try to delete charts")
+			if err := r.cleanupLocalRepo(req.NamespacedName.Name); err != nil {
+				log.Error(err, "cleanup for chartrepo error")
+				return ctrl.Result{}, err
+			}
+		}
 		return ctrl.Result{}, ignoreNotFound(err)
 	}
 
@@ -353,6 +365,58 @@ func (r *ChartRepoReconciler) GetSecretData(cr *v1beta1.ChartRepo, ctx context.C
 	return nil, nil
 }
 
+// cleanupLocalRepo will remove all the charts after the ctr was removed
+func (r *ChartRepoReconciler) cleanupLocalRepo(name string) error {
+	log := r.Log.WithValues("chartrepo", name)
+	url := generateLocalRepoURL(name)
+	link := url + "/index.yaml"
+
+	req, err := http.NewRequest("GET", link, nil)
+	if err != nil {
+		return err
+	}
+
+	index, err := getRepoIndexFile(req)
+	if err != nil {
+		return err
+	}
+
+	for name, versions := range index.Entries {
+		n := strings.ToLower(name)
+		for _, version := range versions {
+			path := fmt.Sprintf("%s/api/charts/%s/%s", url, n, version.Version)
+			req, _ := http.NewRequest("DELETE", path, nil)
+			resp, err := httpClient.Do(req)
+			if err != nil {
+				log.Error(err, "delete chart version error", "chart", n, "version", version.Version)
+			} else {
+				log.Info("delete chart version", "chart", n, "version", version.Version, "resp_code", resp.Status)
+			}
+		}
+
+	}
+	return nil
+}
+
+func getRepoIndexFile(req *http.Request) (*repo.IndexFile, error) {
+	// Get the data
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, errors.Errorf("failed to fetch %s : %s", req.URL.String(), resp.Status)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, resp.Body)
+	body := buf.Bytes()
+
+	return loadIndex(body)
+}
+
 // DownloadIndexFile fetches the index from a repository.
 func (r *ChartRepoReconciler) GetIndex(cr *v1beta1.ChartRepo, ctx context.Context) (*repo.IndexFile, error) {
 	var username string
@@ -378,32 +442,15 @@ func (r *ChartRepoReconciler) GetIndex(cr *v1beta1.ChartRepo, ctx context.Contex
 	}
 
 	link := strings.TrimSuffix(cr.Spec.URL, "/") + "/index.yaml"
-	transCfg := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
-	}
-	c := &http.Client{Timeout: 30 * time.Second, Transport: transCfg}
 	req, err := http.NewRequest("GET", link, nil)
-
+	if err != nil {
+		return nil, err
+	}
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
 	}
 
-	// Get the data
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, errors.Errorf("failed to fetch %s : %s", link, resp.Status)
-	}
-
-	buf := bytes.NewBuffer(nil)
-	_, err = io.Copy(buf, resp.Body)
-	body := buf.Bytes()
-
-	return loadIndex(body)
+	return getRepoIndexFile(req)
 
 }
 
@@ -436,7 +483,7 @@ func (r *ChartRepoReconciler) syncCharts(cr *v1beta1.ChartRepo, ctx context.Cont
 		return err
 	}
 	// this may causes bugs
-	for name, _ := range index.Entries {
+	for name := range index.Entries {
 		checked[strings.ToLower(name)] = true
 	}
 
@@ -573,12 +620,17 @@ func generateChartResource(versions repo.ChartVersions, name string, cr *v1beta1
 
 }
 
+// generateLocalRepoURL generte a repo url for local repo
+func generateLocalRepoURL(name string) string {
+	return "http://captain-chartmuseum:8080/" + name
+}
+
 func (r *ChartRepoReconciler) updateChartRepoURL(ctx context.Context, cr *v1beta1.ChartRepo) error {
 	old := cr.DeepCopy()
 	mp := client.MergeFrom(old.DeepCopy())
 
 	if old.Spec.URL == "" {
-		old.Spec.URL = "http://captain-chartmuseum:8080/" + cr.GetName()
+		old.Spec.URL = generateLocalRepoURL(cr.GetName())
 	}
 
 	// save to origin object

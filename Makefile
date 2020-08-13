@@ -29,6 +29,8 @@ int-test:
 manager: generate fmt vet
 	go build -o bin/manager main.go
 
+build: manager
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
 	go run ./main.go
@@ -83,6 +85,9 @@ generate: controller-gen
 docker-build: test
 	docker build -t captain-cert-init -f Dockerfile.init .
 	docker build . -t ${IMG}
+
+
+docker: docker-build
 
 multi-build:
 	bash  arch.sh
