@@ -44,6 +44,10 @@ import (
 	clusterclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
+const (
+	defaultResyncDuration = 10 * time.Minute
+)
+
 type clusterConfig struct {
 	// clusterClient is used to access Cluster Resource
 	clusterClient clusterclientset.Interface
@@ -96,6 +100,8 @@ type Controller struct {
 	clusterWorkQueues         map[string]workqueue.RateLimitingInterface
 	clusterClients            map[string]clientset.Interface
 	clusterRecorders          map[string]record.EventRecorder
+
+	stopCh <-chan struct{}
 }
 
 //NewController create a new controller
@@ -149,6 +155,8 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 		clusterWorkQueues:         make(map[string]workqueue.RateLimitingInterface),
 		clusterClients:            make(map[string]clientset.Interface),
 		clusterRecorders:          make(map[string]record.EventRecorder),
+
+		stopCh: stopCh,
 	}
 
 	klog.Info("Setting up event handlers")

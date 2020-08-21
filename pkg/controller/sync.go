@@ -91,6 +91,10 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 	if client == nil {
 		// may be not inited yet
 		err := errors.New(fmt.Sprintf("get client for release error, retry later. cluster is: %s", helmRequest.Spec.ClusterName))
+		klog.Info("trying to restart watch for cluster", info.Name)
+		if err := c.restartClusterWatch(info); err != nil {
+			klog.Errorf("restart watch for cluster %s error: %s", info.Name, err.Error())
+		}
 		return err
 	}
 	options := metav1.ListOptions{
