@@ -239,7 +239,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: harbor.alauda.cn/acp/captain:v1.2.1
+        image: harbor.alauda.cn/acp/captain:v1.2.2
         imagePullPolicy: IfNotPresent
         name: manager
         resources:
