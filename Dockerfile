@@ -3,7 +3,7 @@ FROM golang:1.13 as builder
 
 WORKDIR /workspace
 
-ARG go_proxy=https://athens.alauda.cn
+ARG go_proxy=https://goproxy.cn
 ENV GO111MODULE=on \
     GOPROXY=${go_proxy} \
     CGO_ENABLED=0

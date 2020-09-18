@@ -3,6 +3,7 @@ package kube
 import (
 	"io"
 	"sync"
+	"time"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -63,11 +64,35 @@ func (c *Client) Create(resources kube.ResourceList) (*kube.Result, error) {
 		klog.Warning("create resource error:", err)
 		if apierrors.IsAlreadyExists(err) {
 			klog.Warningf("create error due to resource exist, do a dumb update...")
-			return c.Client.Update(resources, resources, true)
+			// result, err := c.Client.Update(resources, resources, true)
+			return c.timeoutUpdate(resources)
 		}
 		return result, err
 	}
 	return result, nil
+}
+
+func (c *Client) timeoutUpdate(resources kube.ResourceList) (*kube.Result, error) {
+	type res struct {
+		result *kube.Result
+		err    error
+	}
+	c1 := make(chan res, 1)
+	go func() {
+		result, err := c.Client.Update(resources, resources, true)
+		c1 <- res{
+			result: result,
+			err:    err,
+		}
+	}()
+
+	select {
+	case res := <-c1:
+		return res.result, res.err
+	case <-time.After(10 * time.Second):
+		klog.Warningf("timeout create-update resource: %s, ignore it", resources[0].Name)
+		return nil, nil
+	}
 }
 
 func (c *Client) IsReachable() error {
