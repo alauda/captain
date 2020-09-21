@@ -83,9 +83,11 @@ generate: controller-gen
 
 # Build the docker image
 docker-build: test
-	docker build -t captain-cert-init -f Dockerfile.init .
 	docker build . -t ${IMG}
 
+
+docker-init-19:
+	docker build . -t captain-cert-init -f build/init-1.19.Dockerfile
 
 docker: docker-build
 
@@ -93,7 +95,7 @@ multi-build:
 	bash  arch.sh
 
 docker-init-arm:
-	docker build -t armharbor.alauda.cn/acp/captain-cert-init -f Dockerfile.init.arm .
+	docker build -t armharbor.alauda.cn/acp/captain-cert-init -f build/Dockerfile.init.arm .
 
 docker-captain-arm: multi-build
 	docker build -t armharbor.alauda.cn/acp/captain -f Dockerfile.arm .
