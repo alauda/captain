@@ -55,7 +55,8 @@ var (
 	transCfg = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
 	}
-	httpClient = &http.Client{Timeout: 30 * time.Second, Transport: transCfg}
+	// use a big timeout to support oci registry
+	httpClient = &http.Client{Timeout: 120 * time.Second, Transport: transCfg}
 )
 
 // ChartRepoReconciler reconciles a ChartRepo object
