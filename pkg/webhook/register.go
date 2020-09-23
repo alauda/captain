@@ -1,7 +1,6 @@
 package webhook
 
 import (
-	"bytes"
 	"encoding/base64"
 
 	"k8s.io/client-go/kubernetes"
@@ -31,19 +30,14 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 		return nil
 	}
 
-	equal := bytes.Compare(mw.Webhooks[0].ClientConfig.CABundle, decoded)
+	// equal := bytes.Compare(mw.Webhooks[0].ClientConfig.CABundle, decoded)
 
-	wLog.Info("debug webhook data", "mw", mw)
-	wLog.Info("debug data", "ca", string(mw.Webhooks[0].ClientConfig.CABundle[:]), "equal", equal == 0)
+	// wLog.Info("debug webhook data", "mw", mw)
+	// wLog.Info("debug data", "ca", string(mw.Webhooks[0].ClientConfig.CABundle[:]), "equal", equal == 0)
 
-	if equal != 0 {
-		wLog.Info("mutating webhook contains no latest data, update now")
-
-		mw.Webhooks[0].ClientConfig.CABundle = decoded
-		if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(mw); err != nil {
-			return err
-		}
-
+	mw.Webhooks[0].ClientConfig.CABundle = decoded
+	if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(mw); err != nil {
+		return err
 	}
 
 	vw, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get("captain-validating-webhook-configuration", metav1.GetOptions{})
@@ -52,15 +46,12 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 		return nil
 	}
 
-	if bytes.Compare(vw.Webhooks[0].ClientConfig.CABundle, decoded) != 0 {
-		wLog.Info("validating webhook contains no latest data, update now")
-		vw.Webhooks[0].ClientConfig.CABundle = decoded
+	vw.Webhooks[0].ClientConfig.CABundle = decoded
 
-		if _, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(vw); err != nil {
-			return err
-		}
-
+	if _, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(vw); err != nil {
+		return err
 	}
+
 	return nil
 
 }
