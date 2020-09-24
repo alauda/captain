@@ -76,7 +76,7 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 // sync install/update chart to one cluster
 func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest) error {
 	ci := *info
-	ci.Namespace = helmRequest.Spec.Namespace
+	ci.Namespace = helmRequest.GetReleaseNamespace()
 	if err := release.EnsureCRDCreated(info.ToRestConfig()); err != nil {
 		klog.Errorf("sync release crd error: %s", err.Error())
 		return err
@@ -100,7 +100,7 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 	options := metav1.ListOptions{
 		LabelSelector: kblabels.Set{"name": helm.GetReleaseName(helmRequest)}.AsSelector().String(),
 	}
-	hist, err := client.AppV1alpha1().Releases(helmRequest.Spec.Namespace).List(options)
+	hist, err := client.AppV1alpha1().Releases(helmRequest.GetReleaseNamespace()).List(options)
 	deployed := false
 	if err == nil && len(hist.Items) > 0 {
 		// deployed = true
@@ -112,7 +112,7 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 			// delete pending-install releases, may be caused by OOM
 			if item.Status.Status == "pending-install" || item.Status.Status == "uninstalling" || item.Status.Status == "pending-upgrade" || item.Status.Status == "failed" {
 				deploy.Log.Info("found pending release, planning to delete it", "name", item.Name, "status", item.Status.Status)
-				if err := client.AppV1alpha1().Releases(helmRequest.Spec.Namespace).Delete(item.Name, &metav1.DeleteOptions{}); err != nil {
+				if err := client.AppV1alpha1().Releases(helmRequest.GetReleaseNamespace()).Delete(item.Name, &metav1.DeleteOptions{}); err != nil {
 					deploy.Log.Error(err, "delete pending release error", "name", item.Name)
 				}
 			}

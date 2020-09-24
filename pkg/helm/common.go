@@ -43,11 +43,7 @@ func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
 
 // GetReleaseName get release name
 func GetReleaseName(hr *v1alpha1.HelmRequest) string {
-	name := hr.GetName()
-	if hr.Spec.ReleaseName != "" {
-		name = hr.Spec.ReleaseName
-	}
-	return name
+	return hr.GetReleaseName()
 }
 
 func helmRepositoryFile() string {
