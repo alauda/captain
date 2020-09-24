@@ -73,7 +73,7 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	}
 	client := action.NewUpgrade(cfg)
 	// client.Force = true
-	client.Namespace = hr.Spec.Namespace
+	client.Namespace = hr.GetReleaseNamespace()
 	client.Install = true
 	// This should be a reasonable value
 	client.MaxHistory = 10

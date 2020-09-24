@@ -73,7 +73,7 @@ func (d *Deploy) install() (*release.Release, error) {
 		return nil, err
 	}
 
-	client.Namespace = hr.Spec.Namespace
+	client.Namespace = hr.GetReleaseNamespace()
 	validInstallableChart, err := isChartInstallable(chartRequested)
 	if !validInstallableChart {
 		log.Error(err, "not installable error")

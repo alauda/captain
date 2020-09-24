@@ -111,25 +111,27 @@ func main() {
 
 	// legacy code....
 
-	// read certs
-	c := kubernetes.NewForConfigOrDie(mgr.GetConfig())
-	s, err := c.CoreV1().Secrets(os.Getenv("KUBERNETES_NAMESPACE")).Get("captain-webhook-cert", metav1.GetOptions{})
-	if err != nil {
-		setupLog.Error(err, "read secret data error")
-		os.Exit(1)
-	}
-	if err := createCerts(s); err != nil {
-		setupLog.Error(err, "create webhook cert files error")
-		os.Exit(1)
-	}
+	// read certs if enable webhook
+	if options.EnableWebhook {
+		c := kubernetes.NewForConfigOrDie(mgr.GetConfig())
+		s, err := c.CoreV1().Secrets(os.Getenv("KUBERNETES_NAMESPACE")).Get("captain-webhook-cert", metav1.GetOptions{})
+		if err != nil {
+			setupLog.Error(err, "read secret data error")
+			os.Exit(1)
+		}
+		if err := createCerts(s); err != nil {
+			setupLog.Error(err, "create webhook cert files error")
+			os.Exit(1)
+		}
 
-	// update webhook if cert not injected
-	// does not know why the script not working.
-	if err := webhook.InjectCertToWebhook(s.Data["caBundle"], mgr.GetConfig()); err != nil {
-		setupLog.Error(err, "inject data to webhook error")
-		os.Exit(1)
+		// update webhook if cert not injected
+		// does not know why the script not working.
+		if err := webhook.InjectCertToWebhook(s.Data["caBundle"], mgr.GetConfig()); err != nil {
+			setupLog.Error(err, "inject data to webhook error")
+			os.Exit(1)
+		}
+		setupLog.Info("inject cert data to webhook")
 	}
-	setupLog.Info("inject cert data to webhook")
 
 	// add cluster refresher
 	cr := cluster.NewClusterRefresher(options.ClusterNamespace, mgr.GetConfig())
@@ -163,7 +165,7 @@ func main() {
 	}
 
 	// add webhook
-	if options.EnableValidateWebhook {
+	if options.EnableWebhook {
 		if err := webhook.RegisterHandlers(mgr); err != nil {
 			setupLog.Error(err, "register handlers for webhook error")
 			os.Exit(1)
