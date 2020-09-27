@@ -74,6 +74,7 @@ spec:
               type: boolean
             values:
               type: object
+              nullable: true
               description: Values defines custom values for this chart
             version:
               type: string
