@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -555,12 +556,23 @@ func compareChart(old v1beta1.Chart, new *v1beta1.Chart) bool {
 	if len(old.Spec.Versions) != len(new.Spec.Versions) {
 		return true
 	}
+	var os []string
+	var ns []string
 
 	for _, o := range old.Spec.Versions {
-		for _, n := range new.Spec.Versions {
-			if o.Version == n.Version && o.Digest != n.Digest {
-				return true
-			}
+		os = append(os, fmt.Sprintf("%s:%s", o.Version, o.Digest))
+	}
+
+	for _, n := range new.Spec.Versions {
+		ns = append(ns, fmt.Sprintf("%s:%s", n.Version, n.Digest))
+	}
+
+	sort.Strings(os)
+	sort.Strings(ns)
+
+	for i, v := range os {
+		if v != ns[i] {
+			return true
 		}
 	}
 

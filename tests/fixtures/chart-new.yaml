@@ -1,0 +1,30 @@
+apiVersion: app.alauda.io/v1beta1
+kind: Chart
+metadata:
+  creationTimestamp: "2020-09-28T02:31:07Z"
+  generation: 1
+  labels:
+    repo: stable
+  name: cephfs-provisioner.stable
+  namespace: cpaas-system
+  ownerReferences:
+    - apiVersion: app.alauda.io/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ChartRepo
+      name: stable
+      uid: 8302b446-4264-4f78-9fa6-d08b3be74dd4
+  resourceVersion: "808064"
+  selfLink: /apis/app.alauda.io/v1beta1/namespaces/cpaas-system/charts/cephfs-provisioner.stable
+  uid: 5d618ac4-e63f-4cf5-9b19-3361ce413a07
+spec:
+  versions:
+    - apiVersion: v2
+      appVersion: 0.1.3
+      created: "0001-01-01T00:00:00Z"
+      description: A Helm chart for Cephfs Provisioner
+      digest: 406ecfbad8084205cd479aa9ae31b3c0b9663dbdce2edd72aae1d8278f7dacd8
+      name: cephfs-provisioner
+      urls:
+        - charts/cephfs-provisioner-v3.0.1.tgz
+      version: v3.0.1
