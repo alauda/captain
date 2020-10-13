@@ -37,10 +37,12 @@ github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d h1:UrqY+r/O
 github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d/go.mod h1:HI8ITrYtUY+O+ZhtlqUnD8+KwNPOyugEhfP9fdUIaEQ=
 github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446 h1:gtzuHCPURUuSWz5y/gkLQyxJn/W3pqG74YpzghVG7bY=
 github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446/go.mod h1:tbaXeIWDl6zX1b7O53FSXClDS1YmEDRnVJszgcLXzpk=
-github.com/alauda/helm v3.0.0-beta.3.0.20200604025526-209d1d488aae+incompatible h1:kE2GB7zzzeg7tJrxYwcbQrGnT7gUqoHS3M383Gmu4Ro=
-github.com/alauda/helm v3.0.0-beta.3.0.20200604025526-209d1d488aae+incompatible/go.mod h1:puN71hQ/dtLbcyDOPyhZw19FrLSYCak3EvJBT2OaRvQ=
-github.com/alauda/helm-crds v0.0.0-20200520071325-ff5c5e248d83 h1:8jtNu9gYkGbnf2yRYxDaYr0cVNjbNEB6ZT9AtTjgqXs=
-github.com/alauda/helm-crds v0.0.0-20200520071325-ff5c5e248d83/go.mod h1:QzPKCROcmAchx7bBj6NrNM34bmMQCrJCb+GrXtYi72o=
+github.com/alauda/component-base v0.0.0-20200924035615-566770b62a9f h1:6hr5oCOHGim9vAeiY/0DI1xMbHY0nBkpMkRfToOQHFU=
+github.com/alauda/component-base v0.0.0-20200924035615-566770b62a9f/go.mod h1:tbaXeIWDl6zX1b7O53FSXClDS1YmEDRnVJszgcLXzpk=
+github.com/alauda/helm v3.0.0-beta.3.0.20200930054109-26ea4370a9cf+incompatible h1:vLFsgmryz2JGO5cb7AiJXSeuQuuw5qAJY7F8/e1nOu0=
+github.com/alauda/helm v3.0.0-beta.3.0.20200930054109-26ea4370a9cf+incompatible/go.mod h1:puN71hQ/dtLbcyDOPyhZw19FrLSYCak3EvJBT2OaRvQ=
+github.com/alauda/helm-crds v0.0.0-20200923024212-7fa45d341efd h1:8u8MWJE0noEXZMjZwabJ9OFmrufonoOhO0EStJFVVRI=
+github.com/alauda/helm-crds v0.0.0-20200923024212-7fa45d341efd/go.mod h1:QzPKCROcmAchx7bBj6NrNM34bmMQCrJCb+GrXtYi72o=
 github.com/alauda/vcs v1.13.2-0.20200311111907-acd482b1ae9a h1:tehWJjvfLunaJmmfcrxGP/1fPpASusJmLjm+RcP67Vc=
 github.com/alauda/vcs v1.13.2-0.20200311111907-acd482b1ae9a/go.mod h1:pIKEljQyS2xWXYeVaGfAZEzqiBQz/IfbQNqPiM5vWA4=
 github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7 h1:uSoVVbwJiQipAclBbw+8quDsfcvFjOpI5iCf4p/cqCs=

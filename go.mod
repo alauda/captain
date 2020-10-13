@@ -2,9 +2,9 @@ module github.com/alauda/captain
 
 go 1.13
 
-replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200604025526-209d1d488aae+incompatible
+replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200930054109-26ea4370a9cf+incompatible
 
-replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200520071325-ff5c5e248d83
+replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200923024212-7fa45d341efd
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
@@ -44,8 +44,9 @@ require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Masterminds/vcs v1.13.1
-	github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446
+	github.com/alauda/component-base v0.0.0-20200924035615-566770b62a9f
 	github.com/alauda/helm-crds v0.0.0-20191219064609-456571553411
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/containerd/containerd v1.3.2 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect

@@ -27,9 +27,9 @@ type Options struct {
 	// 	InstallStableRepo install the default glob al stable repo
 	InstallStableRepo bool
 
-	// EnableValidateWebhook decide if we should enable the validating webhook
-	// mainly used for local test
-	EnableValidateWebhook bool
+	// EnableWebhook decide if we should enable the validating/mutating webhook
+	// it's not worth to support webhook anymore
+	EnableWebhook bool
 
 	// GlobalClusterName it the cluster'name who represents the global cluster, which is also the
 	// cluster captain lives in. We need this variable because we want to support dependency of a
@@ -64,14 +64,17 @@ func (opt *Options) BindFlags() {
 		"The namespace where all the ChartRepo resource lives in")
 	flag.StringVar(&opt.GlobalClusterName, "global-cluster-name", "global",
 		"The name of the global cluster resource")
+
 	// EnableLeaderElection decide if we should enable leader election
 	// this flag is mainly used to enable local test. If enabled, the controller will also
 	// do a simple check to see if it's running in a kubernetes cluster. If passed,
 	// then the leader election is finally turned on
 	// flag.BoolVar(&opt.LeaderElection, "old-enable-leader-election", true,
 	//		"Enable leader election")
-	flag.BoolVar(&opt.EnableValidateWebhook, "enable-validating-webhook", true,
-		"Enable validating webhook")
+
+	// Disable it by default. We should use more crd schemas
+	flag.BoolVar(&opt.EnableWebhook, "enable-webhook", false,
+		"Enable webhook")
 	flag.BoolVar(&opt.InstallStableRepo, "install-stable-repo", true,
 		"Install helm stable repo")
 

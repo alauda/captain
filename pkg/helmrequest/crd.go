@@ -5,7 +5,9 @@ import (
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	extensionsobj "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/rest"
+	"strings"
 )
 
 // CRD is the CRD definition for HelmRequest
@@ -85,9 +87,25 @@ var CRD = &extensionsobj.CustomResourceDefinition{
 	},
 }
 
+// createCRDObject create a crd object from yaml string
+func createCRDObject(s string) (*extensionsobj.CustomResourceDefinition, error) {
+	sr := strings.NewReader(s)
+	d := yaml.NewYAMLOrJSONDecoder(sr, len(s))
+	crdVar := &extensionsobj.CustomResourceDefinition{}
+	if err := d.Decode(crdVar); err != nil {
+		return nil, err
+	}
+	return crdVar, nil
+
+}
+
 // EnsureCRDCreated tries to create/update CRD, returns (true, nil) if succeeding, otherwise returns (false, nil).
 // 'err' should always be nil, because it is used by wait.PollUntil(), and it will exit if it is not nil.
 func EnsureCRDCreated(cfg *rest.Config) (created bool, err error) {
-	return crd.EnsureCRDCreated(cfg, CRD)
+	crdVar, err := createCRDObject(helmRequestCRDYaml)
+	if err != nil {
+		return false, err
+	}
+	return crd.EnsureCRDCreated(cfg, crdVar)
 	// return util.EnsureCRDCreated(cfg, CRD)
 }
