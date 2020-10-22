@@ -1,35 +1,41 @@
 library "alauda-cicd"
 def language = "golang"
 AlaudaPipeline {
-	config = [
-		agent: 'golang-1.13',
-		folder: '.',
-		chart: [
+    config = [
+	agent: 'golang-1.13',
+	folder: '.',
+	chart: [
             [
                 chart: "captain",
                 pipeline: "chart-captain",
                 project: "acp",
                 component: "captain",
             ],
-		],
-		scm: [
-			credentials: 'acp-acp-gitlab'
-		],
-		docker: [
-			repository: "acp/captain",
-			credentials: "alaudak8s",
-			context: ".",
-			dockerfile: "Dockerfile",
-		],
-		sonar: [
-		    binding: "sonarqube",
-	            enabled: true,
-		],
-		notification: [
-	    	name: "default"
-		],
+	],
+	scm: [
+	    credentials: 'acp-acp-gitlab'
+	],
+	docker: [
+	    repository: "acp/captain",
+	    credentials: "alaudak8s",
+	    context: ".",
+	    dockerfile: "Dockerfile",
+	],
+	sonar: [
+	    binding: "sonarqube",
+	    enabled: true,
+	],
+	sec: [
+            enabled: true,
+            block: false,
+            lang: 'go',
+            customOpts: ''
+	],
+	notification: [
+	    name: "default"
+	],
 
-	]
+    ]
 	env = [
 		GO111MODULE: "on",
 		GOPROXY: "https://athens.alauda.cn",
