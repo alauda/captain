@@ -22,5 +22,6 @@ alaudapublic/captain:latest
 ## Uninstall
 ```bash
 kubectl delete -n  captain-system -f https://raw.githubusercontent.com/alauda/captain/master/artifacts/all/deploy.yaml
+kubectl delete clusterrolebinding captain
 kubectl delete ns captain-system
 ```

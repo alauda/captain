@@ -69,23 +69,18 @@ For the detailed explain and advanced usage, please check the documentation belo
 * [ARM64 Support](./docs/arm64.md)
 * [FAQ](./docs/faq.md)
 
-
 ## SDK
 * [Golang](https://github.com/alauda/helm-crds): also contains the CRD definition
-
-
 
 ## Future Plans
 * Java SDK
 * Auto update of HelmRequest
-
-
-
+* 
 
 ## Captain Releated Projects
 * [kubectl-captain](https://github.com/alauda/kubectl-captain): a kubectl plugin for captain
 * [captain-test-charts](https://github.com/alauda/captain-test-charts): test charts for captain
-
+* [oci-chartrepo](https://github.com/alauda/oci-chartrepo): use oci registry as helm chart repo
 
 ## Related Projects
 
