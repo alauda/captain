@@ -20,9 +20,9 @@ This project is based on the core [helm](https://github.com/helm/helm) v3 code, 
 released yet (alpha stage for now), some modifications were made to help implement this controller on a fork: [alauda/helm](https://github.com/alauda/helm) (will be deprecated once Helm's library is released).
 
 ## Features
-* HelmRequest and Release CRD, namespace based
-* ChartRepo CRD
+* HelmRequest/ChartRepo/Release CRD, namespace based
 * Git/Svn as ChartRepo
+* Local ChartRepo based on ChartMuseum
 * Multi cluster support based on [cluster-registry](https://github.com/kubernetes/cluster-registry)
 * Dependency check for HelmRequest (between HelmRequests)
 * `valuesFrom` support: support to ConfigMap or Secret value store
@@ -75,7 +75,8 @@ For the detailed explain and advanced usage, please check the documentation belo
 ## Future Plans
 * Java SDK
 * Auto update of HelmRequest
-* 
+* Always update to the latest version of chart
+
 
 ## Captain Releated Projects
 * [kubectl-captain](https://github.com/alauda/kubectl-captain): a kubectl plugin for captain
