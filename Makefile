@@ -85,6 +85,8 @@ generate: controller-gen
 docker-build: test
 	docker build . -t ${IMG}
 
+container:
+	docker buildx build --platform linux/amd64,linux/arm64 -t alaudapublic/captain:$(VERSION)  --push .
 
 docker-init-19:
 	docker build . -t captain-cert-init -f build/init-1.19.Dockerfile
@@ -93,9 +95,6 @@ docker: docker-build
 
 multi-build:
 	bash  arch.sh
-
-docker-init-arm:
-	docker build -t armharbor.alauda.cn/acp/captain-cert-init -f build/Dockerfile.init.arm .
 
 docker-captain-arm: multi-build
 	docker build -t armharbor.alauda.cn/acp/captain -f Dockerfile.arm .
