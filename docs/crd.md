@@ -15,6 +15,7 @@
         - [spec.valuesFrom](#specvaluesfrom)
     - [ChartRepo](#chartrepo)
         - [Basic Auth](#basic-auth)
+        - [Type](#chartrepo-type)
     - [Chart](#chart)
     - [Release CRD](#release-crd)
 
@@ -134,11 +135,6 @@ Centralized configuration can be a great helper to manage multiple HelmRequest r
 
 
 
-
-
-
-
-
 ## ChartRepo
 
 `ChartRepo` represents a helm repository, where helm client can retrieve and upload helm charts. 
@@ -152,12 +148,14 @@ metadata:
   namespace: captain
 spec:
   url: https://kubernetes-charts.storage.googleapis.com
+  type: Chart
 ``` 
 
 * `metadata.name`: the name of this repo
 * `metadata.namespace`: Captain will only read ChartRepo resources from one namespace, 
    default to `captain`, and can be customized in helm values (`.namespace`)
 * `spec.url`: the url of this repo
+* `spec.type`: the type of this chartrepo. Here `Chart` means this is a normal helm chart repo. For more information, see the sections below
 
 After created, we can use `kubectl` to checkout the repo list
 
@@ -168,6 +166,16 @@ stable   https://kubernetes-charts.storage.googleapis.com   Synced   21m
 ```
 
 The output is very similar to `helm repo list`.
+
+### ChartRepo Type
+In addition to normal helm chart repo (http server), captain also supported following use cases:
+* Pull charts manifests from vcs repo, eg: git/svn
+* Shipped with a built in helm chart repo, so the user can use it out-of-box
+
+ChartRepo support following type:
+* `Chart`: helm chart repo
+* `Git/SVN`: refer to [Git/SVN Support](./vcs-repo.md) for more information.
+* `Local`: use the chartrepo shipped with captain. In this case, `.spec.url` should be "", and captain will generate the repo url for you.
 
 ### Basic Auth
 Of course ,many repos need auth support. Currently, `ChartRepo` has support basic auth by specify 
