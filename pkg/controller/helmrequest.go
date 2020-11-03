@@ -36,7 +36,8 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the HelmRequest resource with this namespace/name
-	helmRequest, err := c.getHelmRequestLister(clusterName).HelmRequests(namespace).Get(name)
+	// helmRequest, err := c.getHelmRequestLister(clusterName).HelmRequests(namespace).Get(name)
+	helmRequest, err := c.getClusterAppClient(clusterName).AppV1alpha1().HelmRequests(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The HelmRequest resource may no longer exist, in which case we stop
 		// processing.
