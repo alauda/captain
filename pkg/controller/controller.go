@@ -331,6 +331,15 @@ func (c *Controller) getAppClient(hr *alpha1.HelmRequest) clientset.Interface {
 	}
 }
 
+// getClusterAppClient get cluster client by name
+func (c *Controller) getClusterAppClient(name string) clientset.Interface {
+	if name == "" {
+		return c.appClientSet
+	} else {
+		return c.clusterClients[name]
+	}
+}
+
 // if this helmrequst deployed to a remote cluster, the release cluster will be .spec.clusterName
 func (c *Controller) getAppClientForRelease(hr *alpha1.HelmRequest) clientset.Interface {
 	if hr.Spec.ClusterName == "" {
