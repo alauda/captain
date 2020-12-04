@@ -118,7 +118,7 @@ func GetChartRepo(name string, ns string, cfg *rest.Config) (*repo.Entry, error)
 
 }
 
-// get chart info, url and digest is the info we want
+// GetChart get chart info, url and digest is the info we want
 func GetChart(name, version, ns string, cfg *rest.Config) (*repo.ChartVersion, error) {
 	client, err := clientset.NewForConfig(cfg)
 	if err != nil {

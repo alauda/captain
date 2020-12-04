@@ -89,6 +89,7 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 	}
 
 	chartResourceName := fmt.Sprintf("%s.%s", strings.ToLower(chart), repoName)
+
 	cv, err := chartrepo.GetChart(chartResourceName, version, d.ns, d.cfg)
 	if err != nil {
 		log.Error(err, "get chart error")

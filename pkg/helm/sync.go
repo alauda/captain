@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"github.com/alauda/captain/pkg/helmrequest"
 	"os"
 	"strings"
 	"time"
@@ -93,7 +94,7 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	var ch *chart.Chart
 
 	downloader := NewDownloader(d.SystemNamespace, d.InCluster.ToRestConfig(), d.Log)
-	chartPath, err := downloader.downloadChart(hr.Spec.Chart, hr.Spec.Version)
+	chartPath, err := downloader.downloadChart(hr.Spec.Chart, helmrequest.ResolveVersion(hr))
 	if err != nil {
 		return nil, err
 	}
