@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/alauda/captain/pkg/cluster"
+	"os"
 	"strings"
 	"time"
 
@@ -113,7 +114,10 @@ func (c *Controller) createEventRecorder(cluster string, client kubernetes.Inter
 			Interface: client.CoreV1().Events(""),
 		},
 	)
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: cluster})
+	// In case two global exist, and captain caches access info for the same cluster, this can help us to
+	// find which captain create the event. Default to ""
+	hostIP := os.Getenv("MY_POD_IP")
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: cluster, Host: hostIP})
 	return recorder
 }
 
