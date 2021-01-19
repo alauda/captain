@@ -91,6 +91,7 @@ func (c *Controller) syncHandler(key string) error {
 			klog.Infof("HelmRequest %s synced", helmRequest.Name)
 			if helmRequest.Status.Phase != v1alpha1.HelmRequestSynced {
 				klog.Infof("helm request phase not synced, trying to set it")
+				helmRequest.Status.Reason = ""
 				return c.updateHelmRequestPhase(helmRequest, v1alpha1.HelmRequestSynced)
 			}
 			return nil

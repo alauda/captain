@@ -4,7 +4,7 @@ go 1.13
 
 replace helm.sh/helm => github.com/alauda/helm v3.0.0-beta.3.0.20200930054109-26ea4370a9cf+incompatible
 
-replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20200923024212-7fa45d341efd
+replace github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20210119064602-a9b3bd3f1a75
 
 replace github.com/deislabs/oras => github.com/deislabs/oras v0.7.0
 
@@ -45,7 +45,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Masterminds/vcs v1.13.1
 	github.com/alauda/component-base v0.0.0-20200924035615-566770b62a9f
-	github.com/alauda/helm-crds v0.0.0-20191219064609-456571553411
+	github.com/alauda/helm-crds v0.0.0-20210119064602-a9b3bd3f1a75
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/containerd/containerd v1.3.2 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
