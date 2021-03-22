@@ -3,6 +3,7 @@ package helm
 import (
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"helm.sh/helm/pkg/action"
@@ -23,6 +24,7 @@ func (d *Deploy) Delete() error {
 	}
 
 	client := action.NewUninstall(cfg)
+	client.Timeout = 60 * time.Second
 
 	res, err := client.Run(name)
 	if err != nil {
