@@ -39,8 +39,8 @@ github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446 h1:gtzuHCPUR
 github.com/alauda/component-base v0.0.0-20190628064654-a4dafcfd3446/go.mod h1:tbaXeIWDl6zX1b7O53FSXClDS1YmEDRnVJszgcLXzpk=
 github.com/alauda/component-base v0.0.0-20200924035615-566770b62a9f h1:6hr5oCOHGim9vAeiY/0DI1xMbHY0nBkpMkRfToOQHFU=
 github.com/alauda/component-base v0.0.0-20200924035615-566770b62a9f/go.mod h1:tbaXeIWDl6zX1b7O53FSXClDS1YmEDRnVJszgcLXzpk=
-github.com/alauda/helm v3.0.0-beta.3.0.20201109103011-0c97bed40270+incompatible h1:uXx1/FTLtA4EuxZDLVJg2vMEBEqCjTHCfX/jrCnNOKI=
-github.com/alauda/helm v3.0.0-beta.3.0.20201109103011-0c97bed40270+incompatible/go.mod h1:puN71hQ/dtLbcyDOPyhZw19FrLSYCak3EvJBT2OaRvQ=
+github.com/alauda/helm v3.0.0-beta.3.0.20210324054531-a2266d7d8572+incompatible h1:xYfXH5GH7iSBPsE809Jpzlz21r2pMWS8frLfVZ93rsE=
+github.com/alauda/helm v3.0.0-beta.3.0.20210324054531-a2266d7d8572+incompatible/go.mod h1:puN71hQ/dtLbcyDOPyhZw19FrLSYCak3EvJBT2OaRvQ=
 github.com/alauda/helm-crds v0.0.0-20210119064602-a9b3bd3f1a75 h1:nK9J+jVULuRXqwaMXCXXjC2++n/eNT7dnBKpASA4NTQ=
 github.com/alauda/helm-crds v0.0.0-20210119064602-a9b3bd3f1a75/go.mod h1:QzPKCROcmAchx7bBj6NrNM34bmMQCrJCb+GrXtYi72o=
 github.com/alauda/vcs v1.13.2-0.20200311111907-acd482b1ae9a h1:tehWJjvfLunaJmmfcrxGP/1fPpASusJmLjm+RcP67Vc=
