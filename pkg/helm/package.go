@@ -21,7 +21,7 @@ var log = ctrl.Log.WithName("helm")
 // uploadCharts upload charts from local dir to chartmuseum, repoName is the repo name
 // as well as local sub-dir name
 func uploadCharts(repoName string) error {
-	url := fmt.Sprintf("%s/api/%s/charts", "http://captain-chartmuseum:8080", repoName)
+	url := fmt.Sprintf("%s/api/%s/charts?force=true", "http://captain-chartmuseum:8080", repoName)
 	dir := tempChartsDir + repoName
 
 	// if dir not exist, but no error found before, consider this VCS does not
