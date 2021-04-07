@@ -158,9 +158,16 @@ func main() {
 	// create controller
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := ctrl.SetupSignalHandler()
-	_, err = controller.NewController(mgr, &options, stopCh)
+	ctr, err := controller.NewController(mgr, &options, stopCh)
 	if err != nil {
 		setupLog.Error(err, "create controller error")
+		os.Exit(1)
+	}
+
+	// add cluster restarter
+	crt := controller.NewClusterWatchRestarter(ctr)
+	if err := mgr.Add(crt); err != nil {
+		setupLog.Error(err, "add cluster restarter runner error")
 		os.Exit(1)
 	}
 

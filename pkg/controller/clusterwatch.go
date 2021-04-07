@@ -85,6 +85,19 @@ func (c *Controller) initWatchForCluster(stopCh <-chan struct{}, cluster *cluste
 	return nil
 }
 
+func (c *Controller) CleanupClusterWatch(name string) {
+	c.clusterHelmRequestListers[name] = nil
+	c.clusterHelmRequestSynced[name] = nil
+	c.clusterWorkQueues[name] = nil
+	c.clusterClients[name] = nil
+	c.clusterRecorders[name] = nil
+}
+
+// IsClusterWatchStarted check if a cluster watch has been started
+func (c *Controller) IsClusterWatchStarted(name string) bool {
+	return c.clusterClients[name] != nil
+}
+
 // restartClusterWatch will restart the failed cluster watches. In this situation, all the hr will be failed at get release client ,
 // so we will trigger from there and try to re-init the watch and restart it
 func (c *Controller) restartClusterWatch(cluster *cluster.Info) error {
