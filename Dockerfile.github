@@ -26,6 +26,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager 
 FROM alpine:3.11
 
 RUN apk update && apk add subversion
+RUN  echo 'hosts: files dns' > /etc/nsswitch.conf
 
 WORKDIR /
 COPY --from=builder /workspace/manager .

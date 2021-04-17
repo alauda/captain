@@ -33,6 +33,7 @@ RUN go build -ldflags '-w -s' -a -installsuffix cgo -o manager main.go
 FROM alpine:3.11
 
 RUN  sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && apk update && apk add subversion
+RUN  echo 'hosts: files dns' > /etc/nsswitch.conf
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
