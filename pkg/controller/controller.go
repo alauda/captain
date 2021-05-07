@@ -299,6 +299,7 @@ func (c *Controller) updateHelmRequestStatus(helmRequest *alpha1.HelmRequest) er
 	// can create a spec that have different hash value.
 	request := helmRequest.DeepCopy()
 	request.Status.LastSpecHash = h
+	request.Status.Reason = ""
 	return c.updateHelmRequestPhase(request, alpha1.HelmRequestSynced)
 }
 
@@ -308,13 +309,16 @@ func (c *Controller) setPartialSyncedStatus(helmRequest *alpha1.HelmRequest) err
 	h := helm.GenUniqueHash(helmRequest)
 	request := helmRequest.DeepCopy()
 	request.Status.LastSpecHash = h
+	request.Status.Reason = ""
 	return c.updateHelmRequestPhase(request, alpha1.HelmRequestPartialSynced)
 }
 
 // setSyncFailedStatus set HelmRequest to Failed and generated a warning event
 func (c *Controller) setSyncFailedStatus(helmRequest *alpha1.HelmRequest, err error) error {
 	c.sendFailedSyncEvent(helmRequest, err)
-	return c.updateHelmRequestPhase(helmRequest, alpha1.HelmRequestFailed)
+	request := helmRequest.DeepCopy()
+	request.Status.Reason = err.Error()
+	return c.updateHelmRequestPhase(request, alpha1.HelmRequestFailed)
 
 }
 
@@ -328,6 +332,15 @@ func (c *Controller) getAppClient(hr *alpha1.HelmRequest) clientset.Interface {
 		return c.appClientSet
 	} else {
 		return c.clusterClients[hr.ClusterName]
+	}
+}
+
+// getClusterAppClient get cluster client by name
+func (c *Controller) getClusterAppClient(name string) clientset.Interface {
+	if name == "" {
+		return c.appClientSet
+	} else {
+		return c.clusterClients[name]
 	}
 }
 

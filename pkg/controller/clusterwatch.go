@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/alauda/captain/pkg/cluster"
+	"os"
 	"strings"
 	"time"
 
@@ -84,6 +85,19 @@ func (c *Controller) initWatchForCluster(stopCh <-chan struct{}, cluster *cluste
 	return nil
 }
 
+func (c *Controller) CleanupClusterWatch(name string) {
+	c.clusterHelmRequestListers[name] = nil
+	c.clusterHelmRequestSynced[name] = nil
+	c.clusterWorkQueues[name] = nil
+	c.clusterClients[name] = nil
+	c.clusterRecorders[name] = nil
+}
+
+// IsClusterWatchStarted check if a cluster watch has been started
+func (c *Controller) IsClusterWatchStarted(name string) bool {
+	return c.clusterClients[name] != nil
+}
+
 // restartClusterWatch will restart the failed cluster watches. In this situation, all the hr will be failed at get release client ,
 // so we will trigger from there and try to re-init the watch and restart it
 func (c *Controller) restartClusterWatch(cluster *cluster.Info) error {
@@ -113,7 +127,10 @@ func (c *Controller) createEventRecorder(cluster string, client kubernetes.Inter
 			Interface: client.CoreV1().Events(""),
 		},
 	)
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: cluster})
+	// In case two global exist, and captain caches access info for the same cluster, this can help us to
+	// find which captain create the event. Default to ""
+	hostIP := os.Getenv("MY_POD_IP")
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: cluster, Host: hostIP})
 	return recorder
 }
 

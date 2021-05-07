@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"github.com/alauda/captain/pkg/helmrequest"
 	"os"
 	"time"
 
@@ -58,7 +59,10 @@ func (d *Deploy) install() (*release.Release, error) {
 	var chartRequested *chart.Chart
 
 	dl := NewDownloader(systemNamespace, inCluster.ToRestConfig(), d.Log)
-	chartPath, err := dl.downloadChart(hr.Spec.Chart, hr.Spec.Version)
+	// before we download specific version of a chart. If version == "", we need to check if
+	// the user want to use the version in status.version.
+
+	chartPath, err := dl.downloadChart(hr.Spec.Chart, helmrequest.ResolveVersion(hr))
 	if err != nil {
 		return nil, err
 	}

@@ -38,7 +38,8 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the HelmRequest resource with this namespace/name
-	helmRequest, err := c.getHelmRequestLister(clusterName).HelmRequests(namespace).Get(name)
+	// helmRequest, err := c.getHelmRequestLister(clusterName).HelmRequests(namespace).Get(name)
+	helmRequest, err := c.getClusterAppClient(clusterName).AppV1alpha1().HelmRequests(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The HelmRequest resource may no longer exist, in which case we stop
 		// processing.
@@ -90,6 +91,7 @@ func (c *Controller) syncHandler(key string) error {
 			klog.Infof("HelmRequest %s synced", helmRequest.Name)
 			if helmRequest.Status.Phase != v1alpha1.HelmRequestSynced {
 				klog.Infof("helm request phase not synced, trying to set it")
+				helmRequest.Status.Reason = ""
 				return c.updateHelmRequestPhase(helmRequest, v1alpha1.HelmRequestSynced)
 			}
 			return nil
