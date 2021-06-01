@@ -46,7 +46,14 @@ From the internal view, it also has some improvements compares to the old versio
 * Use separated filed to store helm data
 * Move some info the to `status` filed, which is more reasonable
 
+## About the structure
+The definition of Release CRD struct can be found [here](https://github.com/alauda/helm-crds/blob/master/pkg/apis/app/v1beta1/types.go#L33)
 
+In fact, the Release CRD mentioned above maps to the Release structure defined in Helm which can be found [here](https://github.com/helm/helm/blob/release-3.0/pkg/release/release.go#L22)
+
+In addition, the fields `ChartData`, `ConfigData`, `HooksData` and `ManifestData` are base64 encoded and then stored.
+
+## Get releases in k8s
 Now you can use kubectl to get the releases and see there status directly:
 
 ```bash
