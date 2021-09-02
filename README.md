@@ -30,7 +30,7 @@ released yet (alpha stage for now), some modifications were made to help impleme
 
 
 ## Quick Start
-Check the [Installation Guide](./docs/install.md) to learn how to install captain
+Check the [Installation Guide](./docs/en/install.md) to learn how to install captain
 
 Then, create a HelmRequest resource 
 
@@ -60,14 +60,14 @@ For the detailed explain and advanced usage, please check the documentation belo
 
 ## Documention
 
-* [How captain works](./docs/captain.md)
-* [Captain Upgrade](./docs/upgrade.md)
-* [CRDs explain](./docs/crd.md)
-* [Multi-Cluster Support](./docs/multi-cluster.md)
-* [Git/SVN as ChartRepo](./docs/vcs-repo.md)
-* [Annotations](./docs/ano.md)
-* [ARM64 Support](./docs/arm64.md)
-* [FAQ](./docs/faq.md)
+* [How captain works](./docs/en/captain.md)
+* [Captain Upgrade](./docs/en/upgrade.md)
+* [CRDs explain](./docs/en/crd.md)
+* [Multi-Cluster Support](./docs/en/multi-cluster.md)
+* [Git/SVN as ChartRepo](./docs/en/vcs-repo.md)
+* [Annotations](./docs/en/ano.md)
+* [ARM64 Support](./docs/en/arm64.md)
+* [FAQ](./docs/en/faq.md)
 
 ## SDK
 * [Golang](https://github.com/alauda/helm-crds): also contains the CRD definition

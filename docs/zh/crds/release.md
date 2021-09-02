@@ -1,0 +1,66 @@
+# Release CRD
+
+Release CRD 存储了 helm charts 的 release 信息，它与 Helm2 格式相比有一些不同：
+
+* 它是一个 CRD，而不是一个特殊用途的 ConfigMap 或 Secret
+* 不同命名空间之间不再有名称冲突
+* 它可以与 HelmRequest 位于不同的集群中
+
+这是一个`Release`资源示例：
+
+```yaml
+apiVersion: app.alauda.io/v1alpha1
+kind: Release
+metadata:
+  creationTimestamp: "2019-07-26T07:15:59Z"
+  generation: 2
+  labels:
+    modifiedAt: "1564125359"
+    name: nginx
+    owner: helm
+    status: deployed
+    version: "3"
+  name: nginx.v3
+  namespace: h8
+  resourceVersion: "27352526"
+  selfLink: /apis/app.alauda.io/v1alpha1/namespaces/h8/releases/nginx.v3
+  uid: 37fae69c-af75-11e9-b1c5-525400cb432d
+spec:
+  chartData: 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
+  configData: H4sIAAAAAAAC/0SMS6oDIRBF93LHtu/DGzxqmlGWUa2FEeyysQx0aNx7MBlkcrhwD+cEM2jCYV1BEw6p1JUL6ETeOInNpSnrcdXUxOxStbdairT5NNmr5V7bA4RQmO3rJS/5bS/hozt0TiB8+98//4MxHJQ3sZ2DgHD7h0OTlK3P2gmOcSZAyBrl8Fz4HtkHxRjjGQAA//+NfINQvQAAAA==
+  hooksData: H4sIAAAAAAAC/8orzckBBAAA//9P/MslBAAAAA==
+  manifestData: H4sIAAAAAAAC/9xWW2/jNhP9K0T2e/j6IF/iFAgE5MGbuG3QbGqs3X0yEIypkUSEIlleHLtF/3tBSnJ0czYpmgJbvYkzc3hmeDicsyiKNuIDWUmnKcZEZEzsIyYyjcaMLRaKg0UzDuujAxR8Ix6ZSGJyLUXKsk+gNgIU+4LaMClisptuRIEWErAQbwQhAoojLg0xToNlUtRGo8DvnF/6BQ5b5CYEEgJKjR7dFrVAi2bE5LgEq+hFAfSUqwJtI5n2vP+lhC1VkUG9YxTNfztTl3wrmdZRZkerfLvplfmvymw62b5/GnVFB5cbJTUKaeCBe4taAF9rSFNGl5IzeojJnaTAvV1JbUvGUQWdW6t8qQghQia4lNrGZHY+mU5KsiosXNZ/WlpJJY/J+npZLlnQGdoyrgRrg5s++nQ2OW+iX1zMXg0fFGWQI7VSv2/t7UGhrx0kH4GDoKj/1hVqSgqUMuNnXd2g4vJQoLAv9MiaF5XCasm5p/G1S1Vdv4c31OEfKNlRhhoVZxRMTKYDx1WApfldk+6b+LzxEKszqfduVtl/vM3jjUzexiX4CyFteO6amyotC7Q5uhIhqH1zNp2cf3+xOTvlZqgGr9DNmdUOa7/qED6UEZUQ5pRKJ+z9gKwqDyg9jjTTlAlmD02OMpnXq+SPP9sGYdm8H+KV8JtjGpMbp5nIVjTHxHEmsttMyOPyYo/U+ZK0QqPybFZt8Tx/QUaLvfJZdMpZAzziIW7dha4LIVKhBg9PbkXfugPusI/ssU/oIfQsqSSX2eFnv31bHLk0tknE/9+jfZL6MSbhGCuDb5cDqVe7dg+dEN8dgAnUTbbRKxrJEbmALMg8wf0IOLgERlSMKQeo+tkAQDwZnV+Mpk0c0Fm3YBEZv4aBd4yqkbAAdfW//y9/uXm4n39arJbz68V34xMzYzu+OWe9BNadx9oozRnmJZTurNNGUW7Lmclrj374CyLy8Y1mESmNKdtflS9LFdfuPP14FLDlGBnDIwXG2FxLl+V9vwRTcNwGR4raspRRsHiVX469Gixv5WaQOs3s4VoKi3vbOWzgXD4tNdsxjhkuDAUeMmjLuxItKNgyziwbuGSJlmrw5s3v7rrLkCSDrveL9cPH2/ubh9Xi85fb60Xb5wN5enqK/HNAoo2bTGZIZrO2i3Zibn41qOOOCcWup/LystVH3OUTeskPWhYDTFOGPPmM6YCpMi7B5vHx+Rr1m1l3+6Cwd+cQRpBmwPOE2adWj4ctCdR9a9kaNIdCzVdij2Nk9bKzHQo0ZqnlFjuMUmDcaVznGk0ueRKTzrn7/X5E26uFCiUY5wjc5r/3rIFH+Wx3TIbm6BP5ab1etm3+0WTAb5DDYYVUisTPTZ06KNRMJifNxlGKxjTymXaeJFagdPYEgEZI2LdQq/cow9lfAQAA//8jyZd28xAAAA==
+  name: nginx
+  version: 3
+status:
+  Description: Upgrade complete
+  deleted: null
+  first_deployed: "2019-07-26T07:02:49Z"
+  last_deployed: "2019-07-26T07:15:59Z"
+  status: deployed
+```
+
+从内部来看，与旧版本相比，它也有一些改进：
+
+* 使用多个字段存储 helm 数据
+* 将一些信息移到 `status` 归档，这样更合理
+
+## 关于Release资源配置结构
+Release CRD 定义 [here](https://github.com/alauda/helm-crds/blob/master/pkg/apis/app/v1beta1/types.go#L33)
+
+实际上，上面提到的 Release CRD 映射到 Helm 中定义的 Release 结构，可以在这里找到 [here](https://github.com/helm/helm/blob/release-3.0/pkg/release/release.go#L22)
+
+此外，字段 `ChartData`、`ConfigData`、`HooksData` 和 `ManifestData` 都经过 base64 编码然后存储。
+
+## 在k8s集群中获取release资源列表
+
+您可以使用 `kubectl` 命令来获取版本、状态信息：
+
+```bash
+[root@ake-master1 ~]# kubectl get rel --all-namespaces
+NAMESPACE   NAME       STATUS       AGE
+h8          nginx.v1   superseded   2d
+h8          nginx.v2   superseded   2d
+h8          nginx.v3   deployed     2d
+[root@ake-master1 ~]#
+```
