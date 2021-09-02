@@ -292,7 +292,7 @@ A little explanation
 * the name of this chart choose the format of `<chart-name>.<repo-name>`, because different repo can have chart with the same name
 * `.spec` contains list of chart versions, which contains all the metadata a chart version have
 
-After a [ChartRepo](https://github.com/alauda/captain/blob/master/docs/chartrepo.md) was created ,captain will start to sync the charts this repo have and create all the charts resources,  mostly this will only take less than a minute.
+After a [ChartRepo](https://github.com/alauda/captain/blob/master/docs/en/crds/chartrepo.md) was created ,captain will start to sync the charts this repo have and create all the charts resources,  mostly this will only take less than a minute.
 For now the charts resources only serves to api usage, captain still use helm's local cache to locate chart, but this will be soon changed.
 
 ## Release CRD
