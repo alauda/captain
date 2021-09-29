@@ -1,13 +1,14 @@
 package helm
 
 import (
-	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	"strings"
 	"time"
 
+	"github.com/alauda/captain/pkg/util"
+	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
-	"helm.sh/helm/pkg/action"
-	"helm.sh/helm/pkg/storage/driver"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kblabels "k8s.io/apimachinery/pkg/labels"
 )
@@ -25,6 +26,11 @@ func (d *Deploy) Delete() error {
 
 	client := action.NewUninstall(cfg)
 	client.Timeout = 60 * time.Second
+
+	client.KeepResources = isSwitchEnabled(hr, util.KeepResourcesAnnotation)
+	if client.KeepResources {
+		d.Log.Info("found keep resources in helmrequest annotation, will keep k8s resources when uninstall current release ", "name", name)
+	}
 
 	res, err := client.Run(name)
 	if err != nil {

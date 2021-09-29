@@ -3,7 +3,7 @@ package kube
 import (
 	"time"
 
-	"helm.sh/helm/pkg/kube"
+	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
 )

@@ -1,14 +1,14 @@
 package kubeconfig
 
 import (
+	"time"
+
 	"github.com/alauda/captain/pkg/cluster"
-	"github.com/alauda/component-base/system"
 	"github.com/patrickmn/go-cache"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
-	"time"
 )
 
 var (
@@ -72,7 +72,7 @@ func UpdateKubeConfig(info *cluster.Info) (*Config, error) {
 		Namespace: "alauda-system",
 	}
 
-	if err := system.CreatePathIfNotExist(cfg.Path); err != nil {
+	if err := CreatePathIfNotExist(cfg.Path); err != nil {
 		return nil, err
 	}
 

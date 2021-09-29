@@ -1,17 +1,17 @@
 package helm
 
 import (
+	"context"
 	"fmt"
-
-	"k8s.io/klog"
 
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"github.com/ghodss/yaml"
-	"helm.sh/helm/pkg/chartutil"
+	"helm.sh/helm/v3/pkg/chartutil"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 //Values is an alias for map, we cannot use chartutils.Values because the helm code
@@ -96,7 +96,7 @@ func getValuesFromSource(hr *v1alpha1.HelmRequest, cfg *rest.Config) (chartutil.
 
 func getValuesFromSecret(s *v1.SecretKeySelector, client *kubernetes.Clientset, ns string) (chartutil.Values, error) {
 	optional := s.Optional != nil && *s.Optional
-	secret, err := client.CoreV1().Secrets(ns).Get(s.Name, metav1.GetOptions{})
+	secret, err := client.CoreV1().Secrets(ns).Get(context.Background(), s.Name, metav1.GetOptions{})
 	if err != nil {
 		if optional {
 			return nil, nil
@@ -130,7 +130,7 @@ func getValuesFromSecret(s *v1.SecretKeySelector, client *kubernetes.Clientset, 
 
 func getValuesFromConfigMap(c *v1.ConfigMapKeySelector, client *kubernetes.Clientset, ns string) (chartutil.Values, error) {
 	optional := c.Optional != nil && *c.Optional
-	cm, err := client.CoreV1().ConfigMaps(ns).Get(c.Name, metav1.GetOptions{})
+	cm, err := client.CoreV1().ConfigMaps(ns).Get(context.Background(), c.Name, metav1.GetOptions{})
 	if err != nil {
 		if optional {
 			return nil, nil

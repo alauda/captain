@@ -1,12 +1,12 @@
 package webhook
 
 import (
+	"context"
 	"encoding/base64"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -24,7 +24,7 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 		return err
 	}
 
-	mw, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get("captain-mutating-webhook-configuration", metav1.GetOptions{})
+	mw, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), "captain-mutating-webhook-configuration", metav1.GetOptions{})
 	if err != nil {
 		wLog.Error(err, "get mutate webhook error, ignore")
 		return nil
@@ -36,11 +36,11 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 	// wLog.Info("debug data", "ca", string(mw.Webhooks[0].ClientConfig.CABundle[:]), "equal", equal == 0)
 
 	mw.Webhooks[0].ClientConfig.CABundle = decoded
-	if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(mw); err != nil {
+	if _, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(context.Background(), mw, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 
-	vw, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get("captain-validating-webhook-configuration", metav1.GetOptions{})
+	vw, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.Background(), "captain-validating-webhook-configuration", metav1.GetOptions{})
 	if err != nil {
 		wLog.Error(err, "get valite webhook error , ignore")
 		return nil
@@ -48,7 +48,7 @@ func InjectCertToWebhook(data []byte, cfg *rest.Config) error {
 
 	vw.Webhooks[0].ClientConfig.CABundle = decoded
 
-	if _, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(vw); err != nil {
+	if _, err := client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.Background(), vw, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 

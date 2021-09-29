@@ -5,13 +5,12 @@ import (
 	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog"
-
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 func InstallDefaultChartRepo(cfg *rest.Config, ns string) error {

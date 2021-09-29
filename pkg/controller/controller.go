@@ -17,15 +17,20 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/alauda/captain/pkg/helm"
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
+	clusterclientset "github.com/alauda/captain/pkg/clusterregistry/client/clientset/versioned"
 	"github.com/alauda/captain/pkg/config"
+	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/util"
+	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
+	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
+	listers "github.com/alauda/helm-crds/pkg/client/listers/app/v1alpha1"
+	commoncache "github.com/patrickmn/go-cache"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -34,14 +39,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-
-	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
-	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
-	commoncache "github.com/patrickmn/go-cache"
-
-	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
-	listers "github.com/alauda/helm-crds/pkg/client/listers/app/v1alpha1"
-	clusterclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 const (
@@ -105,7 +103,7 @@ type Controller struct {
 }
 
 //NewController create a new controller
-func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struct{}) (*Controller, error) {
+func NewController(mgr manager.Manager, opt *config.Options, ctx context.Context) (*Controller, error) {
 	cfg := mgr.GetConfig()
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
@@ -156,7 +154,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 		clusterClients:            make(map[string]clientset.Interface),
 		clusterRecorders:          make(map[string]record.EventRecorder),
 
-		stopCh: stopCh,
+		stopCh: ctx.Done(),
 	}
 
 	klog.Info("Setting up event handlers")
@@ -172,7 +170,7 @@ func NewController(mgr manager.Manager, opt *config.Options, stopCh <-chan struc
 	// appInformerFactory.Start(stopCh)
 
 	// fuck examples, this should after init controller
-	appInformerFactory.Start(stopCh)
+	appInformerFactory.Start(ctx.Done())
 	// chartRepoInformerFactory.Start(stopCh)
 
 	return controller, mgr.Add(controller)
@@ -187,7 +185,7 @@ func (c *Controller) GetClusterClient() clusterclientset.Interface {
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workQueue and wait for
 // workers to finish processing their current work items.
-func (c *Controller) Start(stopCh <-chan struct{}) error {
+func (c *Controller) Start(ctx context.Context) error {
 	defer utilruntime.HandleCrash()
 	defer c.workQueue.ShutDown()
 	// defer c.chartRepoWorkQueue.ShutDown()
@@ -196,25 +194,25 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	klog.Info("Starting HelmRequest controller")
 
 	// starts other clusters
-	if err := c.startAllClustersWatch(stopCh); err != nil {
+	if err := c.startAllClustersWatch(ctx.Done()); err != nil {
 		return err
 	}
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.helmRequestSynced); !ok {
+	if ok := cache.WaitForCacheSync(ctx.Done(), c.helmRequestSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
 	klog.Info("Starting workers")
 	// Launch two workers to process HelmRequest resources
 	for i := 0; i < 2; i++ {
-		go wait.Until(c.runWorker, time.Second, stopCh)
+		go wait.Until(c.runWorker, time.Second, ctx.Done())
 		// go wait.Until(c.runChartRepoWorker, time.Second, stopCh)
 	}
 
 	klog.Info("Started workers")
-	<-stopCh
+	<-ctx.Done()
 	klog.Info("Shutting down workers")
 
 	// fuck. this bug. shutdown now manually
@@ -269,8 +267,11 @@ func (c *Controller) processNextWorkItem() bool {
 		// Start the syncHandler, passing it the namespace/name string of the
 		// HelmRequest resource to be synced.
 		if err := c.syncHandler(key); err != nil {
-			// Put the item back on the workQueue to handle any transient errors.
-			c.workQueue.AddRateLimited(key)
+			// not rbac checked error
+			if !apierrors.IsForbidden(err) {
+				// Put the item back on the workQueue to handle any transient errors.
+				c.workQueue.AddRateLimited(key)
+			}
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
@@ -300,7 +301,8 @@ func (c *Controller) updateHelmRequestStatus(helmRequest *alpha1.HelmRequest) er
 	request := helmRequest.DeepCopy()
 	request.Status.LastSpecHash = h
 	request.Status.Reason = ""
-	return c.updateHelmRequestPhase(request, alpha1.HelmRequestSynced)
+	request.Status.Phase = alpha1.HelmRequestSynced
+	return helm.UpdateHelmRequestStatus(c.getAppClient(helmRequest), request)
 }
 
 // setPartialSyncedStatus set spec hash and partial-synced status for helm-request
@@ -330,53 +332,54 @@ func (c *Controller) setPendingStatus(helmRequest *alpha1.HelmRequest) error {
 func (c *Controller) getAppClient(hr *alpha1.HelmRequest) clientset.Interface {
 	if hr.ClusterName == "" {
 		return c.appClientSet
-	} else {
-		return c.clusterClients[hr.ClusterName]
 	}
+
+	return c.clusterClients[hr.ClusterName]
 }
 
 // getClusterAppClient get cluster client by name
 func (c *Controller) getClusterAppClient(name string) clientset.Interface {
 	if name == "" {
 		return c.appClientSet
-	} else {
-		return c.clusterClients[name]
 	}
+
+	return c.clusterClients[name]
 }
 
 // if this helmrequst deployed to a remote cluster, the release cluster will be .spec.clusterName
 func (c *Controller) getAppClientForRelease(hr *alpha1.HelmRequest) clientset.Interface {
 	if hr.Spec.ClusterName == "" {
 		return c.getAppClient(hr)
-	} else {
-		if hr.Spec.ClusterName == "global" {
-			return c.appClientSet
-		}
-		return c.clusterClients[hr.Spec.ClusterName]
 	}
+
+	if hr.Spec.ClusterName == "global" {
+		return c.appClientSet
+	}
+
+	return c.clusterClients[hr.Spec.ClusterName]
 }
 
 func (c *Controller) getHelmRequestLister(name string) listers.HelmRequestLister {
 	if name == "" {
 		return c.helmRequestLister
-	} else {
-		return c.clusterHelmRequestListers[name]
 	}
+
+	return c.clusterHelmRequestListers[name]
 }
 
 func (c *Controller) getEventRecorder(hr *alpha1.HelmRequest) record.EventRecorder {
 	if hr.ClusterName == "" {
 		return c.recorder
-	} else {
-		return c.clusterRecorders[hr.ClusterName]
 	}
+
+	return c.clusterRecorders[hr.ClusterName]
 }
 
 // getDeployCluster returns the cluster name which the target Release lives in
 func (c *Controller) getDeployCluster(hr *alpha1.HelmRequest) string {
 	if hr.Spec.ClusterName != "" {
 		return hr.Spec.ClusterName
-	} else {
-		return hr.ClusterName
 	}
+
+	return hr.ClusterName
 }

@@ -4,10 +4,10 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"helm.sh/helm/pkg/cli"
-	"helm.sh/helm/pkg/getter"
-	"helm.sh/helm/pkg/helmpath"
-	"helm.sh/helm/pkg/repo"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/helmpath"
+	"helm.sh/helm/v3/pkg/repo"
 )
 
 var lock sync.Mutex

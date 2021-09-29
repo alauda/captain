@@ -38,6 +38,7 @@ func (c *Controller) newHelmRequestHandler() cache.ResourceEventHandler {
 				klog.V(4).Infof("spec/annotations equal, not update: %s", newHR.Name)
 				return
 			}
+			klog.V(4).Infof("old hr annotations: %+v, new hr annotations: %+v", oldHR.Annotations, newHR.Annotations)
 			klog.V(4).Infof("old hr: %+v, new hr: %+v", oldHR.Spec, newHR.Spec)
 			c.enqueueHelmRequest(new)
 		}

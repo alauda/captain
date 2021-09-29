@@ -222,7 +222,7 @@ func (c *Controller) deleteHandler(obj interface{}) {
 	}
 }
 
-// deleteHelmRequest delete the installed chart about this HelmRequest
+// deleteHelmRequest delete the installed chart created by this HelmRequest
 // if InstallToAllClusters=true, delete it from all clusters
 func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 	// get clusters
@@ -254,7 +254,7 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 		ci.Namespace = hr.GetReleaseNamespace()
 		klog.Infof("delete HelmRequest %s for cluster %s", hr.GetName(), ci.Name)
 
-		d := helm.NewDeploy()
+		d := helm.NewDeploy(c.getClusterAppClient(ci.Name))
 		d.HelmRequest = hr
 		d.Cluster = &ci
 
@@ -272,6 +272,7 @@ func (c *Controller) deleteHelmRequest(hr *v1alpha1.HelmRequest) error {
 		if strings.Contains(err.Error(), "unable to build kubernetes objects for delete") {
 			klog.Warning("unable to build kubernetes resource when delete, ignore this error: ", err)
 		} else {
+			klog.Error("delete hr error", err)
 			return err
 		}
 

@@ -5,13 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/client-go/kubernetes/scheme"
-
 	"github.com/pkg/errors"
-	"helm.sh/helm/pkg/kube"
+	"helm.sh/helm/v3/pkg/kube"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 )
 
@@ -27,23 +28,28 @@ func init() {
 //Client is a thin wrapper around helm.kube
 type Client struct {
 	*kube.Client
+
+	core kubernetes.Interface
 }
 
 // New creates a new Client.
-func New(getter genericclioptions.RESTClientGetter) *Client {
+func New(getter genericclioptions.RESTClientGetter, config *rest.Config) *Client {
 	mu.Lock()
 	client := kube.New(getter)
 	mu.Unlock()
 	client.Factory = newFactory(client.Factory)
 
+	core := kubernetes.NewForConfigOrDie(config)
+
 	return &Client{
-		client,
+		Client: client,
+		core:   core,
 	}
 }
 
 // Build validates for Kubernetes objects and returns resource Infos from a io.Reader.
-func (c *Client) Build(reader io.Reader) (kube.ResourceList, error) {
-	result, err := c.Client.Build(reader)
+func (c *Client) Build(reader io.Reader, validate bool) (kube.ResourceList, error) {
+	result, err := c.Client.Build(reader, validate)
 	if err != nil {
 		klog.Warning("build resources error: ", err)
 		return result, err

@@ -1,12 +1,13 @@
 package cluster
 
 import (
+	"context"
 	"os"
 	"time"
 
+	clusterclientset "github.com/alauda/captain/pkg/clusterregistry/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	clusterclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 	"k8s.io/klog"
 )
 
@@ -25,7 +26,7 @@ func NewClusterRefresher(ns string, cfg *rest.Config) *ClusterRefresher {
 	}
 }
 
-func (c *ClusterRefresher) Start(stopCh <-chan struct{}) error {
+func (c *ClusterRefresher) Start(ctx context.Context) error {
 	klog.Info("start cluster refresher runner...")
 
 	clusterClient, err := clusterclientset.NewForConfig(c.cfg)

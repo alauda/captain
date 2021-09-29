@@ -3,15 +3,16 @@ package helm
 import (
 	"errors"
 	"fmt"
-	"helm.sh/helm/pkg/action"
-	"helm.sh/helm/pkg/chart/loader"
-	"helm.sh/helm/pkg/chartutil"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
+
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var tempChartsDir = "/tmp/vcs-charts/"

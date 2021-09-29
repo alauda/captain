@@ -1,12 +1,13 @@
 package helmrequest
 
 import (
-	"github.com/bmizerany/assert"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestCRDParser(t *testing.T) {
-	result, err := createCRDObject(helmRequestCRDYaml)
+	result, err := CreateCRDObject(helmRequestCRDYaml)
 	assert.Equal(t, err, nil)
 	t.Log(result.String())
 }

@@ -3,13 +3,11 @@ package controller
 import (
 	"testing"
 
+	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
-
-	"github.com/gsamokovarov/assert"
-
-	"github.com/alauda/component-base/hash"
 	"github.com/ghodss/yaml"
-	"helm.sh/helm/pkg/chartutil"
+	"github.com/gsamokovarov/assert"
+	"helm.sh/helm/v3/pkg/chartutil"
 )
 
 func TestHelmRequestDeepCopyHash(t *testing.T) {
@@ -34,5 +32,5 @@ func TestHelmRequestDeepCopyHash(t *testing.T) {
 			Version:              "1.2.1",
 		},
 	}
-	assert.Equal(t, hash.GenHashStr(hr.Spec), hash.GenHashStr(hr.DeepCopy().Spec))
+	assert.Equal(t, helm.GenHashStr(hr.Spec), helm.GenHashStr(hr.DeepCopy().Spec))
 }

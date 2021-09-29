@@ -1,65 +1,18 @@
 package chartrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/url"
+
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
-	"helm.sh/helm/pkg/repo"
+	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
-	"net/url"
 )
-
-// SyncAllChartRepoToHelm retrieve all the synced ChartRepos and sync them to helm config
-// since we still use helm repo file to locate chart for now
-//func SyncAllChartRepoToHelm(cfg *rest.Config, ns string) error {
-//	client, err := clientset.NewForConfig(cfg)
-//	if err != nil {
-//		return err
-//	}
-//
-//	coreClient, err := kubernetes.NewForConfig(cfg)
-//	if err != nil {
-//		return err
-//	}
-//
-//	data, err := client.AppV1alpha1().ChartRepos(ns).List(metav1.ListOptions{})
-//	if err != nil {
-//		return err
-//	}
-//
-//	var username string
-//	var password string
-//
-//	for _, cr := range data.Items {
-//		if cr.Status.Phase != "Synced" {
-//			continue
-//		}
-//		if cr.Spec.Secret != nil {
-//			ns := cr.Spec.Secret.Namespace
-//			if ns == "" {
-//				ns = cr.Namespace
-//			}
-//			secret, err := coreClient.CoreV1().Secrets(ns).Get(cr.Spec.Secret.Name, metav1.GetOptions{})
-//			if err != nil {
-//				klog.Warningf("Get secret %s error for chartrepo %s", cr.Spec.Secret.Name, cr.Name)
-//				continue
-//			}
-//
-//			data := secret.Data
-//			username = string(data["username"])
-//			password = string(data["password"])
-//		}
-//		if err := helm.AddBasicAuthRepository(cr.GetName(), cr.Spec.URL, username, password); err != nil {
-//			return err
-//		}
-//		klog.Infof("add chartrepo %s to helm", cr.Name)
-//
-//	}
-//	return nil
-//}
 
 func GetChartRepo(name string, ns string, cfg *rest.Config) (*repo.Entry, error) {
 	client, err := clientset.NewForConfig(cfg)
@@ -72,7 +25,7 @@ func GetChartRepo(name string, ns string, cfg *rest.Config) (*repo.Entry, error)
 		return nil, err
 	}
 
-	cr, err := client.AppV1alpha1().ChartRepos(ns).Get(name, metav1.GetOptions{})
+	cr, err := client.AppV1beta1().ChartRepos(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +38,7 @@ func GetChartRepo(name string, ns string, cfg *rest.Config) (*repo.Entry, error)
 		if ns == "" {
 			ns = cr.Namespace
 		}
-		secret, err := coreClient.CoreV1().Secrets(ns).Get(cr.Spec.Secret.Name, metav1.GetOptions{})
+		secret, err := coreClient.CoreV1().Secrets(ns).Get(context.Background(), cr.Spec.Secret.Name, metav1.GetOptions{})
 		if err != nil {
 			klog.Warningf("Get secret %s error for chartrepo %s", cr.Spec.Secret.Name, cr.Name)
 			return nil, err
