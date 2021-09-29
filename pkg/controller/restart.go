@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
+	"context"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 )
 
@@ -20,12 +21,12 @@ func NewClusterWatchRestarter(controller *Controller) *ClusterWatchRestarter {
 	}
 }
 
-// Start...
+// Start ...
 // 1. check all the clusters to see if it's running
 // 2. start watch if not for every cluster
 // Limitations: If a cluster is watched already, but offline for sometime, and then back online. This runnable cannot
 // handle this situation.
-func (c *ClusterWatchRestarter) Start(stopCh <-chan struct{}) error {
+func (c *ClusterWatchRestarter) Start(ctx context.Context) error {
 	klog.Info("start cluster restart runner...")
 
 	// wait for the main controller
@@ -61,6 +62,6 @@ func (c *ClusterWatchRestarter) Start(stopCh <-chan struct{}) error {
 			}
 		}
 		return false, nil
-	}, stopCh)
+	}, ctx.Done())
 
 }

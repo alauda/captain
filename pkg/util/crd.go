@@ -20,7 +20,7 @@ func InstallCRDIfRequired(cfg *rest.Config, required bool) error {
 	return nil
 }
 
-//  InstallHelmRequestCRD install HelmRequest crd with timeout
+// InstallHelmRequestCRD install HelmRequest crd with timeout
 func InstallHelmRequestCRD(cfg *rest.Config) error {
 	return wait.Poll(time.Second*3, time.Second*15, func() (bool, error) {
 		return helmrequest.EnsureCRDCreated(cfg)

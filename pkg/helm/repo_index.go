@@ -3,7 +3,7 @@ package helm
 import (
 	"time"
 
-	"helm.sh/helm/pkg/repo"
+	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 )

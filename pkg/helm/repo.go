@@ -3,8 +3,8 @@ package helm
 import (
 	"fmt"
 
-	"helm.sh/helm/pkg/helmpath"
-	"helm.sh/helm/pkg/repo"
+	"helm.sh/helm/v3/pkg/helmpath"
+	"helm.sh/helm/v3/pkg/repo"
 )
 
 // GetChartsForRepo retrieve charts info from a repo cache index

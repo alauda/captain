@@ -1,11 +1,11 @@
 package cluster
 
 import (
+	"github.com/alauda/captain/pkg/clusterregistry/apis/clusterregistry/v1alpha1"
+	"github.com/alauda/captain/pkg/clusterregistry/client/clientset/versioned"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-	"k8s.io/cluster-registry/pkg/client/clientset/versioned"
 	"k8s.io/klog"
 )
 

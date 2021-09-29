@@ -1,13 +1,14 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/alauda/captain/pkg/cluster"
+	"github.com/alauda/captain/pkg/clusterregistry/apis/clusterregistry/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 )
 
@@ -64,7 +65,7 @@ func (c *Controller) parseClusterInfo(cr *v1alpha1.Cluster) (*cluster.Info, erro
 	ns := cr.Spec.AuthInfo.Controller.Namespace
 	secretName := cr.Spec.AuthInfo.Controller.Name
 	// get token
-	sec, err := c.kubeClient.CoreV1().Secrets(ns).Get(secretName, v1.GetOptions{})
+	sec, err := c.kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

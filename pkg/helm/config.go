@@ -3,17 +3,16 @@ package helm
 import (
 	"os"
 
-	newkube "github.com/alauda/captain/pkg/kube"
-	"github.com/alauda/captain/pkg/kubeconfig"
-	releaseclient "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
-	"helm.sh/helm/pkg/kube"
-
 	"github.com/alauda/captain/pkg/release/storagedriver"
-	"helm.sh/helm/pkg/action"
-	"helm.sh/helm/pkg/storage"
-	"helm.sh/helm/pkg/storage/driver"
+	releaseclient "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/kube"
+	"helm.sh/helm/v3/pkg/storage"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	"k8s.io/kubectl/pkg/cmd/util"
 )
 
 // getNamespace get the namespaces from ..... This may be a little unnecessary, may be we can just
@@ -29,24 +28,18 @@ func getNamespace(flags *genericclioptions.ConfigFlags) string {
 // allNamespaces is always set to false for now,
 // default storage driver is Release now
 func (d *Deploy) newActionConfig() (*action.Configuration, error) {
-	cfg, err := kubeconfig.UpdateKubeConfig(d.Cluster)
-	if err != nil {
-		return nil, err
+	restClientGetter := newConfigFlags(d.Cluster.ToRestConfig(), d.Cluster.Namespace, true)
+	kubeClient := &kube.Client{
+		Factory: util.NewFactory(restClientGetter),
+		Log:     klog.Infof,
 	}
-	cfg.Namespace = d.Cluster.Namespace
-
-	cfgFlags := kube.GetConfig(cfg.Path, cfg.Context, cfg.Namespace)
-	kc := newkube.New(cfgFlags)
-	// hope it works
-	kc.Log = klog.Infof
-
-	namespace := getNamespace(cfgFlags)
 
 	relClientSet, err := releaseclient.NewForConfig(d.Cluster.ToRestConfig())
 	if err != nil {
 		return nil, err
 	}
 
+	namespace := getNamespace(restClientGetter)
 	var store *storage.Storage
 	switch os.Getenv("HELM_DRIVER") {
 	case "release", "releases", "":
@@ -61,10 +54,26 @@ func (d *Deploy) newActionConfig() (*action.Configuration, error) {
 		panic("Unknown driver in HELM_DRIVER: " + os.Getenv("HELM_DRIVER"))
 	}
 
+	d.rbacClient = &RbacClient{
+		config:       d.Cluster.ToRestConfig(),
+		clientGetter: restClientGetter,
+	}
+	d.Releases = store
+
 	return &action.Configuration{
-		RESTClientGetter: cfgFlags,
-		KubeClient:       kc,
+		RESTClientGetter: restClientGetter,
+		KubeClient:       kubeClient,
 		Releases:         store,
 		Log:              klog.Infof,
 	}, nil
+}
+
+func newConfigFlags(config *rest.Config, namespace string, insecure bool) *genericclioptions.ConfigFlags {
+	return &genericclioptions.ConfigFlags{
+		Namespace:   &namespace,
+		APIServer:   &config.Host,
+		CAFile:      &config.CAFile,
+		BearerToken: &config.BearerToken,
+		Insecure:    &insecure,
+	}
 }

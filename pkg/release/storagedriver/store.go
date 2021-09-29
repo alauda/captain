@@ -17,6 +17,7 @@ limitations under the License.
 package storagedriver
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -24,8 +25,8 @@ import (
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	releaseclient "github.com/alauda/helm-crds/pkg/client/clientset/versioned/typed/app/v1alpha1"
 	"github.com/pkg/errors"
-	rspb "helm.sh/helm/pkg/release"
-	"helm.sh/helm/pkg/storage/driver"
+	rspb "helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kblabels "k8s.io/apimachinery/pkg/labels"
@@ -63,11 +64,18 @@ func (rel *Releases) getRawRelease(key string) (*v1alpha1.Release, error) {
 	obj, err := rel.impl.Get(key, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, driver.ErrReleaseNotFound
+			obj, err = rel.impl.Get(releaseNamePrefixHandler(key), metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil, driver.ErrReleaseNotFound
+				}
+				rel.Log("get: failed to get %q: %s", key, err)
+				return nil, err
+			}
+		} else {
+			rel.Log("get: failed to get %q: %s", key, err)
+			return nil, err
 		}
-
-		rel.Log("get: failed to get %q: %s", key, err)
-		return nil, err
 	}
 	return obj, err
 }
@@ -75,12 +83,12 @@ func (rel *Releases) getRawRelease(key string) (*v1alpha1.Release, error) {
 // Get fetches the release named by key. The corresponding release is returned
 // or error if not found.
 func (rel *Releases) Get(key string) (*rspb.Release, error) {
-	// fetch the configmap holding the release named by key
+	// fetch the object holding the release named by key
 	obj, err := rel.getRawRelease(key)
 	if err != nil {
 		return nil, err
 	}
-	// found the configmap, decode the base64 data string
+	// found the object, decode the base64 data string
 	r, err := decodeRelease(obj)
 	if err != nil {
 		rel.Log("get: failed to decode data %q: %s", key, err)
@@ -92,7 +100,7 @@ func (rel *Releases) Get(key string) (*rspb.Release, error) {
 
 // List fetches all releases and returns the list releases such
 // that filter(release) == true. An error is returned if the
-// configmap fails to retrieve the releases.
+// object fails to retrieve the releases.
 func (rel *Releases) List(filter func(*rspb.Release) bool) ([]*rspb.Release, error) {
 	lsel := kblabels.Set{"owner": "helm"}.AsSelector()
 	opts := metav1.ListOptions{LabelSelector: lsel.String()}
@@ -105,7 +113,7 @@ func (rel *Releases) List(filter func(*rspb.Release) bool) ([]*rspb.Release, err
 
 	var results []*rspb.Release
 
-	// iterate over the configmaps object list
+	// iterate over the objects object list
 	// and decode each release
 	for _, item := range list.Items {
 		rls, err := decodeRelease(&item)
@@ -121,7 +129,7 @@ func (rel *Releases) List(filter func(*rspb.Release) bool) ([]*rspb.Release, err
 }
 
 // Query fetches all releases that match the provided map of labels.
-// An error is returned if the configmap fails to retrieve the releases.
+// An error is returned if the object fails to retrieve the releases.
 func (rel *Releases) Query(labels map[string]string) ([]*rspb.Release, error) {
 	ls := kblabels.Set{}
 	for k, v := range labels {
@@ -155,25 +163,26 @@ func (rel *Releases) Query(labels map[string]string) ([]*rspb.Release, error) {
 	return results, nil
 }
 
-// Create creates a new ConfigMap holding the release. If the
-// ConfigMap already exists, ErrReleaseExists is returned.
+// Create creates a new object holding the release. If the
+// object already exists, ErrReleaseExists is returned.
 func (rel *Releases) Create(key string, rls *rspb.Release) error {
-	// set labels for configmaps object meta data
+	// set labels for object meta data
 	var lbs labels
 
 	lbs.init()
 	lbs.set("createdAt", strconv.Itoa(int(time.Now().Unix())))
 
-	// create a new configmap to hold the release
+	// create a new to hold the release
 	obj, err := newReleasesObject(key, rls, lbs)
 	if err != nil {
 		rel.Log("create: failed to encode release %q: %s", rls.Name, err)
 		return err
 	}
-	// push the configmap object out into the kubiverse
+	// push the object out into the kubiverse
 	if _, err := rel.impl.Create(obj); err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			return driver.ErrReleaseExists
+			// update release when it is already exists
+			return rel.Update(key, rls)
 		}
 
 		rel.Log("create: failed to create: %s", err)
@@ -182,16 +191,16 @@ func (rel *Releases) Create(key string, rls *rspb.Release) error {
 	return nil
 }
 
-// Update updates the ConfigMap holding the release. If not found
-// the ConfigMap is created to hold the release.
+// Update updates the object holding the release. If not found
+// the object is created to hold the release.
 func (rel *Releases) Update(key string, rls *rspb.Release) error {
-	// set labels for configmaps object meta data
+	// set labels for object meta data
 	var lbs labels
 
 	lbs.init()
 	lbs.set("modifiedAt", strconv.Itoa(int(time.Now().Unix())))
 
-	// create a new configmap object to hold the release
+	// create a new object to hold the release
 	obj, err := newReleasesObject(key, rls, lbs)
 	if err != nil {
 		rel.Log("update: failed to encode release %q: %s", rls.Name, err)
@@ -203,9 +212,10 @@ func (rel *Releases) Update(key string, rls *rspb.Release) error {
 		rel.Log("update, pre-fetch release error: %s: %s", key, err.Error())
 	} else {
 		obj.ResourceVersion = old.ResourceVersion
+		obj.Name = old.Name
 	}
 
-	// push the configmap object out into the kubiverse
+	// push the object out into the kubiverse
 	_, err = rel.impl.Update(obj)
 	if err != nil {
 		rel.Log("update: failed to update: %s", err)
@@ -214,35 +224,37 @@ func (rel *Releases) Update(key string, rls *rspb.Release) error {
 	return nil
 }
 
-// Delete deletes the ConfigMap holding the release named by key.
+// Delete deletes the object holding the release named by key.
 func (rel *Releases) Delete(key string) (rls *rspb.Release, err error) {
 	// fetch the release to check existence
-	if rls, err = rel.Get(key); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, driver.ErrReleaseExists
+	old, err := rel.getRawRelease(key)
+	if err != nil {
+		if errors.Cause(err) == driver.ErrReleaseNotFound {
+			rel.Log("delete: fetch the release %q but it no longer exists", key)
+			return rls, nil
 		}
-
 		rel.Log("delete: failed to get release %q: %s", key, err)
 		return nil, err
 	}
+
 	// delete the release
-	if err = rel.impl.Delete(key, &metav1.DeleteOptions{}); err != nil {
+	if err = rel.impl.Delete(old.GetName(), &metav1.DeleteOptions{}); err != nil {
 		return rls, err
 	}
 	return rls, nil
 }
 
-// newReleasesObject constructs a kubernetes ConfigMap object
-// to store a release. Each configmap data entry is the base64
+// newReleasesObject constructs a kubernetes object
+// to store a release. Each object data entry is the base64
 // encoded string of a release's binary protobuf encoding.
 //
-// The following labels are used within each configmap:
+// The following labels are used within each object:
 //
-//    "modifiedAt"     - timestamp indicating when this configmap was last modified. (set in Update)
-//    "createdAt"      - timestamp indicating when this configmap was created. (set in Create)
+//    "modifiedAt"     - timestamp indicating when this object was last modified. (set in Update)
+//    "createdAt"      - timestamp indicating when this object was created. (set in Create)
 //    "version"        - version of the release.
 //    "status"         - status of the release (see proto/hapi/release.status.pb.go for variants)
-//    "owner"          - owner of the configmap, currently "helm".
+//    "owner"          - owner of the object, currently "helm".
 //    "name"           - name of the release.
 //
 func newReleasesObject(key string, rls *rspb.Release, lbs labels) (*v1alpha1.Release, error) {
@@ -268,4 +280,15 @@ func newReleasesObject(key string, rls *rspb.Release, lbs labels) (*v1alpha1.Rel
 	s.Name = key
 
 	return s, nil
+}
+
+// Since Helm V3, the release name has been added with the prefix "sh.helm.release.v1"
+// but compatibility with older data needs to be considered
+func releaseNamePrefixHandler(key string) string {
+	prefix := "sh.helm.release.v1."
+	if strings.HasPrefix(key, prefix) {
+		return strings.TrimPrefix(key, prefix)
+	}
+
+	return fmt.Sprintf("%s%s", prefix, key)
 }

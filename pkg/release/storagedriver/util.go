@@ -24,11 +24,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"k8s.io/klog"
-
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
-	"helm.sh/helm/pkg/chart"
-	rspb "helm.sh/helm/pkg/release"
+	"helm.sh/helm/v3/pkg/chart"
+	rspb "helm.sh/helm/v3/pkg/release"
+	"k8s.io/klog"
 )
 
 var b64 = base64.StdEncoding

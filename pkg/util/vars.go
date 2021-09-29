@@ -19,4 +19,10 @@ const (
 	// KubectlCaptainSync is a key in annotations to indicate that kubectl-captain have force
 	// trigger a upgrade for this HelmRequest, we need to resync it. Usally it's value is current timestamp
 	KubectlCaptainSync = "kubectl-captain.resync"
+
+	// KeepResourcesAnnotation indicate to keep k8s resources when uninstall a chart
+	KeepResourcesAnnotation = "captain-keep-resources"
+
+	// ForceAdoptResourcesAnnotation indicate to force adopt resources when insall or upgrade a chart
+	ForceAdoptResourcesAnnotation = "captain-force-adopt-resources"
 )

@@ -12,6 +12,22 @@ Description:
 	If you do not want captain to sync a HelmRequest anymore, and you do not want to delete it for now, you can use this annotation to tell captain this HelmRequest skip processing this HelmRequest.
 	For example, if you have accidentally create two HelmRequest which use the same chart and target to the same namespace, and the resources are already installed in this namespace. In this situation, delete either of this HelmRequest will delete the contained resource. This annotation can help you with this.(Of course there are ways to safely delete a HelmRequest without delete the contained resource)
 
+## `captain-keep-resources`
+Works on: `HelmRequest`
+
+Values: True/False
+
+Description:
+	If you want to keep deployed k8s resources when uninstalling release via helm, you can use this annotation to tell captain this HelmRequest will keep resources when doing uninstall.
+
+## `captain-force-adopt-resources`
+Works on: `HelmRequest`
+
+Values: True/False
+
+Description:
+	If you want to adopt k8s resources when installing or upgrading release via helm, you can use this annotation to tell captain this HelmRequest will force adopt resources when doing install or upgrade. Because in the newest helm version, it is not allowed to update resources with the same name that are not belong current release.
+
 ## `kubectl-captain.resync`
 Works on: `HelmRequest`
 

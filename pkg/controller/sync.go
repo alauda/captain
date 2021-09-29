@@ -10,7 +10,7 @@ import (
 	"github.com/alauda/captain/pkg/release"
 	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	"github.com/thoas/go-funk"
-	"helm.sh/helm/pkg/action"
+	helm_release "helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kblabels "k8s.io/apimachinery/pkg/labels"
@@ -82,7 +82,7 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 		return err
 	}
 
-	deploy := helm.NewDeploy()
+	deploy := helm.NewDeploy(c.getAppClient(helmRequest))
 
 	// found exist release here, this is logic from helm, and we skip the decode part to
 	// avoid OOM. This may be removed in the feature
@@ -102,18 +102,22 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 	}
 	hist, err := client.AppV1alpha1().Releases(helmRequest.GetReleaseNamespace()).List(options)
 	deployed := false
-	if err == nil && len(hist.Items) > 0 {
-		// deployed = true
-		for _, item := range hist.Items {
-			if item.Status.Status == "deployed" {
-				deployed = true
-			}
+	if err != nil {
+		klog.Warningf("failed to list all release of helmrequest %s : %+v", helmRequest.Name, err)
+	} else {
+		klog.V(1).Infof("list all release of helmrequest %s, releases length : %d", helmRequest.Name, len(hist.Items))
+		if len(hist.Items) > 0 {
+			for _, item := range hist.Items {
+				if item.Status.Status == helm_release.StatusDeployed {
+					deployed = true
+				}
 
-			// delete pending-install releases, may be caused by OOM
-			if item.Status.Status == "pending-install" || item.Status.Status == "uninstalling" || item.Status.Status == "pending-upgrade" || item.Status.Status == "failed" {
-				deploy.Log.Info("found pending release, planning to delete it", "name", item.Name, "status", item.Status.Status)
-				if err := client.AppV1alpha1().Releases(helmRequest.GetReleaseNamespace()).Delete(item.Name, &metav1.DeleteOptions{}); err != nil {
-					deploy.Log.Error(err, "delete pending release error", "name", item.Name)
+				// delete pending-install... releases, may be caused by OOM
+				if item.Status.Status != helm_release.StatusDeployed && item.Status.Status != helm_release.StatusSuperseded {
+					deploy.Log.Info("found pending release, planning to delete it", "name", item.Name, "status", item.Status.Status)
+					if err := client.AppV1alpha1().Releases(helmRequest.GetReleaseNamespace()).Delete(item.Name, &metav1.DeleteOptions{}); err != nil {
+						deploy.Log.Error(err, "delete pending release error", "name", item.Name)
+					}
 				}
 			}
 		}
@@ -136,6 +140,6 @@ func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest)
 	msg := fmt.Sprintf("Choose chart version: %s %s", rel.Chart.Metadata.Name, rel.Chart.Metadata.Version)
 	c.getEventRecorder(helmRequest).Event(helmRequest, corev1.EventTypeNormal, SuccessSynced, msg)
 
-	action.PrintRelease(os.Stdout, rel)
+	helm.PrintRelease(os.Stdout, rel)
 	return nil
 }

@@ -2,17 +2,18 @@ package controller
 
 import (
 	"fmt"
-	"github.com/alauda/captain/pkg/cluster"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/util"
 	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	hrScheme "github.com/alauda/helm-crds/pkg/client/clientset/versioned/scheme"
 	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -228,8 +229,11 @@ func (c *Controller) processNextClusterWorkItem(name string) bool {
 		// Start the syncHandler, passing it the namespace/name string of the
 		// HelmRequest resource to be synced.
 		if err := c.syncHandler(key); err != nil {
-			// Put the item back on the workQueue to handle any transient errors.
-			queue.AddRateLimited(key)
+			// not rbac checked error
+			if !apierrors.IsForbidden(err) {
+				// Put the item back on the workQueue to handle any transient errors.
+				queue.AddRateLimited(key)
+			}
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not

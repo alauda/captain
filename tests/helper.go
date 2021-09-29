@@ -1,10 +1,12 @@
 package tests
 
 import (
-	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"strings"
+
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
+	"helm.sh/helm/v3/pkg/repo"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 func ReadFile(path string) string {
@@ -16,7 +18,7 @@ func ReadFile(path string) string {
 	return string(data)
 }
 
-// createCRDObject create a crd object from yaml string
+// LoadChart ...
 func LoadChart(path string) *v1beta1.Chart {
 	s := ReadFile(path)
 	sr := strings.NewReader(s)
@@ -26,4 +28,16 @@ func LoadChart(path string) *v1beta1.Chart {
 		panic(err)
 	}
 	return chart
+}
+
+// LoadIndex load index from file
+func LoadIndex(path string) *repo.IndexFile {
+	s := ReadFile(path)
+	sr := strings.NewReader(s)
+	d := yaml.NewYAMLOrJSONDecoder(sr, len(s))
+	index := &repo.IndexFile{}
+	if err := d.Decode(index); err != nil {
+		panic(err)
+	}
+	return index
 }
