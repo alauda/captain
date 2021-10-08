@@ -50,7 +50,7 @@ Release CRD 定义 [here](https://github.com/alauda/helm-crds/blob/master/pkg/ap
 
 实际上，上面提到的 Release CRD 映射到 Helm 中定义的 Release 结构，可以在这里找到 [here](https://github.com/helm/helm/blob/release-3.0/pkg/release/release.go#L22)
 
-此外，字段 `ChartData`、`ConfigData`、`HooksData` 和 `ManifestData` 都经过 base64 编码然后存储。
+此外，字段 `ChartData`、`ConfigData`、`HooksData` 和 `ManifestData` 都经过 base64 编码并且被`gzip`压缩然后存储。
 
 ## 在k8s集群中获取release资源列表
 
@@ -58,9 +58,9 @@ Release CRD 定义 [here](https://github.com/alauda/helm-crds/blob/master/pkg/ap
 
 ```bash
 [root@ake-master1 ~]# kubectl get rel --all-namespaces
-NAMESPACE   NAME       STATUS       AGE
-h8          nginx.v1   superseded   2d
-h8          nginx.v2   superseded   2d
-h8          nginx.v3   deployed     2d
+NAMESPACE   NAME                          STATUS       AGE
+h8          sh.helm.release.v1.nginx.v1   superseded   2d
+h8          sh.helm.release.v1.nginx.v2   superseded   2d
+h8          sh.helm.release.v1.nginx.v3   deployed     2d
 [root@ake-master1 ~]#
 ```
