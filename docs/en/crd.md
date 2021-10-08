@@ -348,9 +348,9 @@ Now you can use kubectl to get the releases and see there status directly:
 
 ```bash
 [root@ake-master1 ~]# kubectl get rel --all-namespaces
-NAMESPACE   NAME       STATUS       AGE
-h8          nginx.v1   superseded   2d
-h8          nginx.v2   superseded   2d
-h8          nginx.v3   deployed     2d
+NAMESPACE   NAME                          STATUS       AGE
+h8          sh.helm.release.v1.nginx.v1   superseded   2d
+h8          sh.helm.release.v1.nginx.v2   superseded   2d
+h8          sh.helm.release.v1.nginx.v3   deployed     2d
 [root@ake-master1 ~]#
 ```

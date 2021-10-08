@@ -47,20 +47,20 @@ From the internal view, it also has some improvements compares to the old versio
 * Move some info the to `status` filed, which is more reasonable
 
 ## About the structure
-The definition of Release CRD struct can be found [here](https://github.com/alauda/helm-crds/blob/master/pkg/apis/app/v1beta1/types.go#L33)
+What is the structure of Release CRD. You can see [here](https://github.com/alauda/helm-crds/blob/master/pkg/apis/app/v1beta1/types.go#L33)
 
-In fact, the Release CRD mentioned above maps to the Release structure defined in Helm which can be found [here](https://github.com/helm/helm/blob/release-3.0/pkg/release/release.go#L22)
+In Helm's code, the release structure is defined like this. You can see [here](https://github.com/helm/helm/blob/release-3.0/pkg/release/release.go#L22)
 
-In addition, the fields `ChartData`, `ConfigData`, `HooksData` and `ManifestData` are base64 encoded and then stored.
+Release CRD stores the release info of a helm charts. It should be noted especially that the fields `ChartData`, `ConfigData`, `HooksData` and `ManifestData` are base64 encoded and compressed by `gzip`.
 
 ## Get releases in k8s
 Now you can use kubectl to get the releases and see there status directly:
 
 ```bash
 [root@ake-master1 ~]# kubectl get rel --all-namespaces
-NAMESPACE   NAME       STATUS       AGE
-h8          nginx.v1   superseded   2d
-h8          nginx.v2   superseded   2d
-h8          nginx.v3   deployed     2d
+NAMESPACE   NAME                          STATUS       AGE
+h8          sh.helm.release.v1.nginx.v1   superseded   2d
+h8          sh.helm.release.v1.nginx.v2   superseded   2d
+h8          sh.helm.release.v1.nginx.v3   deployed     2d
 [root@ake-master1 ~]#
 ```
