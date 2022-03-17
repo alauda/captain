@@ -11,7 +11,7 @@ require (
 	github.com/bshuster-repo/logrus-logstash-hook v1.0.0 // indirect
 	github.com/bugsnag/bugsnag-go v2.1.1+incompatible // indirect
 	github.com/bugsnag/panicwrap v1.3.2 // indirect
-	github.com/containerd/containerd v1.4.12
+	github.com/containerd/containerd v1.4.13
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deislabs/oras v0.11.1
 	github.com/docker/go-metrics v0.0.1 // indirect
