@@ -95,6 +95,15 @@ func (c *Controller) newClusterHelmRequestHandler(name string) cache.ResourceEve
 
 	addFunc := func(obj interface{}) {
 		klog.Infof("receive hr create event: %+v", obj)
+
+		hr := obj.(*alpha1.HelmRequest)
+		copy := hr.DeepCopy()
+		copy.ClusterName = name
+		outdated, _ := c.isOldEvent(name, copy)
+		if outdated {
+			return
+		}
+
 		c.enqueueClusterHelmRequest(obj, name)
 	}
 
