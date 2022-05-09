@@ -2,13 +2,13 @@ package controller
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
 
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/helm"
 	"github.com/alauda/captain/pkg/release"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
+	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
 	helm_release "helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +19,7 @@ import (
 )
 
 // syncToAllClusters install/upgrade release in all the clusters
-func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmRequest) error {
+func (c *Controller) syncToAllClusters(key string, helmRequest *appv1.HelmRequest) error {
 	clusters, err := c.getAllClusters()
 	if err != nil {
 		return err
@@ -32,7 +32,8 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 	// if not equal, we need to update helm status first
 	if !equal {
 		helmRequest.Status.SyncedClusters = make([]string, 0)
-		if err := c.updateHelmRequestPhase(helmRequest, v1alpha1.HelmRequestPending); err != nil {
+		helmRequest.Status.Phase = appv1.HelmRequestPending
+		if err := helm.UpdateHelmRequestStatus(c.getAppClient(helmRequest), helmRequest); err != nil {
 			return err
 		}
 	} else if helmRequest.Status.SyncedClusters != nil {
@@ -64,7 +65,7 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 
 	if len(synced) >= len(clusters) {
 		// all synced
-		return c.updateHelmRequestStatus(helmRequest)
+		return c.updateHelmRequestSynced(helmRequest)
 	} else if len(synced) > 0 {
 		// partial synced
 		c.sendFailedSyncEvent(helmRequest, err)
@@ -74,7 +75,7 @@ func (c *Controller) syncToAllClusters(key string, helmRequest *v1alpha1.HelmReq
 }
 
 // sync install/update chart to one cluster
-func (c *Controller) sync(info *cluster.Info, helmRequest *v1alpha1.HelmRequest) error {
+func (c *Controller) sync(info *cluster.Info, helmRequest *appv1.HelmRequest) error {
 	ci := *info
 	ci.Namespace = helmRequest.GetReleaseNamespace()
 	if err := release.EnsureCRDCreated(info.ToRestConfig()); err != nil {

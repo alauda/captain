@@ -6,17 +6,17 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/vcs v1.13.1
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
-	github.com/alauda/helm-crds v0.0.0-20210929080316-c14c5ae86a53
+	github.com/alauda/helm-crds v0.0.0-20210914035428-6e2324c2b020
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/bshuster-repo/logrus-logstash-hook v1.0.0 // indirect
 	github.com/bugsnag/bugsnag-go v2.1.1+incompatible // indirect
 	github.com/bugsnag/panicwrap v1.3.2 // indirect
-	github.com/containerd/containerd v1.4.13
+	github.com/containerd/containerd v1.5.0-beta.1
+	github.com/containers/image/v5 v5.11.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deislabs/oras v0.11.1
-	github.com/docker/go-metrics v0.0.1 // indirect
+	github.com/docker/cli v20.10.8+incompatible // indirect
 	github.com/docker/go-units v0.4.0
-	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/garyburd/redigo v1.6.2 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.4.0
@@ -30,7 +30,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2
+	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.26.0
@@ -59,14 +59,13 @@ require (
 
 replace (
 	github.com/Masterminds/vcs => github.com/alauda/vcs v1.13.2-0.20200311111907-acd482b1ae9a
-	github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20210929080316-c14c5ae86a53
+	github.com/alauda/helm-crds => github.com/alauda/helm-crds v0.0.0-20210914035428-6e2324c2b020
 	github.com/deislabs/oras => github.com/deislabs/oras v0.11.0
 	github.com/docker/distribution => github.com/distribution/distribution v2.7.1+incompatible
 	github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
 	github.com/miekg/dns => github.com/miekg/dns v1.0.0
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc95
 	github.com/xenolf/lego => github.com/go-acme/lego v0.4.0
 	helm.sh/helm/v3 => github.com/alauda/helm/v3 v3.6.4-0.20210914033728-4a2cde3ea69c
 

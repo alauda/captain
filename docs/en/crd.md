@@ -13,6 +13,7 @@
         - [spec.dependencies](#specdependencies)
         - [spec.values](#specvalues)
         - [spec.valuesFrom](#specvaluesfrom)
+        - [spec.source](#specsource)
     - [ChartRepo](#chartrepo)
         - [Basic Auth](#basic-auth)
         - [Type](#chartrepo-type)
@@ -132,7 +133,43 @@ spec:
 
 Centralized configuration can be a great helper to manage multiple HelmRequest resources. 
 
+### spec.source
 
+Helmrequest now supports version v1 and has added new fields.
+
+The chart's source. It's optional, this will indicate the source of the current chart, which will be an OCI or HTTP URL address.
+If basic authentication is required, specify a secretname in the `spec.source.oci` or `spec.source.http`.
+
+As shown in the following examples
+
+```yaml
+# OCI type
+apiVersion: app.alauda.io/v1
+kind: HelmRequest
+metadata:
+  name: test-oci
+  namespace: default
+spec:
+  source:
+    oci:
+      repo: 192.168.26.40:60080/acp/chart-tomcat         # oci repo address
+      secretRef: ociSecret      # optional, if basic authentication is required, specify a secretname here.
+  values:
+    namespace: default
+  version: 9.2.9    # required, oci version
+---
+# HTTP type
+apiVersion: app.alauda.io/v1
+kind: HelmRequest
+metadata:
+  name: test-http
+  namespace: default
+spec:
+  source:
+    http:
+      url: https://alauda.github.io/captain-test-charts/wordpress-lookup-11.0.13.tgz
+  values: {}
+```
 
 
 ## ChartRepo

@@ -9,7 +9,7 @@ import (
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/helmrequest"
 	"github.com/alauda/captain/pkg/util"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	"github.com/go-logr/logr"
 	"github.com/patrickmn/go-cache"
@@ -17,7 +17,6 @@ import (
 	"github.com/teris-io/shortid"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
@@ -44,7 +43,7 @@ type Deploy struct {
 	SystemNamespace string
 
 	// all the charts info
-	HelmRequest *v1alpha1.HelmRequest
+	HelmRequest *appv1.HelmRequest
 
 	// Client is the crd client for hr
 	Client clientset.Interface
@@ -132,15 +131,27 @@ func (d *Deploy) Sync() (*release.Release, error) {
 	// load from cache first, then from disk
 	var ch *chart.Chart
 	downloader := NewDownloader(d.SystemNamespace, d.InCluster.ToRestConfig(), d.Cluster.ToRestConfig(), d.Log)
-	chartPath, err := downloader.downloadChart(hr.Spec.Chart, helmrequest.ResolveVersion(hr))
-	if err != nil {
-		return nil, err
-	}
-	log.Info("load charts from disk", "path", chartPath)
-	ch, err = loader.Load(chartPath)
-	if err != nil {
-		log.Error(err, "failed to load chart from disk ", "path", chartPath)
-		return nil, err
+	switch getChartSourceType(hr) {
+	case ChartSourceChart:
+		ch, err = downloader.downloadChart(hr.Spec.Chart, helmrequest.ResolveVersion(hr))
+		if err != nil {
+			log.Error(err, "failed to pull chart")
+			return nil, err
+		}
+	case ChartSourceOCI:
+		ch, err = downloader.pullOCIChart(hr)
+		if err != nil {
+			log.Error(err, "failed to pull oci chart")
+			return nil, err
+		}
+	case ChartSourceHTTP:
+		ch, err = downloader.downloadChartFromHTTP(hr)
+		if err != nil {
+			log.Error(err, "failed to pull http chart")
+			return nil, err
+		}
+	default:
+		return nil, errors.New("Unsupported chart source of helmrequest spec")
 	}
 	d.HelmRequest.Status.Version = ch.Metadata.Version
 

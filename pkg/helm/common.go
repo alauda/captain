@@ -6,10 +6,20 @@ import (
 	"hash/fnv"
 
 	"github.com/alauda/captain/pkg/util"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
 	"github.com/davecgh/go-spew/spew"
 	"helm.sh/helm/v3/pkg/helmpath"
 )
+
+type ChartSourceType string
+
+const (
+	ChartSourceHTTP  ChartSourceType = "http"
+	ChartSourceOCI   ChartSourceType = "oci"
+	ChartSourceChart ChartSourceType = "chart"
+)
+
+var systemUsers []string = []string{"admin", "kubernetes-admin"}
 
 // DeepHashObject writes specified object to hash using the spew library
 // which follows pointers and prints actual values of the nested objects
@@ -40,9 +50,9 @@ func GenHashStr(data interface{}) string {
 }
 
 // GenUniqueHash generate a unique hash for a HelmRequest
-func GenUniqueHash(hr *v1alpha1.HelmRequest) string {
+func GenUniqueHash(hr *appv1.HelmRequest) string {
 	source := struct {
-		spec        v1alpha1.HelmRequestSpec
+		spec        appv1.HelmRequestSpec
 		annotations map[string]string
 	}{
 		hr.Spec,
@@ -55,7 +65,7 @@ func GenUniqueHash(hr *v1alpha1.HelmRequest) string {
 // only if hash is equal and not install to all clusters
 // First version: only hash .spec
 // Second version: hash .spec and .metadata.annotations
-func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
+func IsHelmRequestSynced(hr *appv1.HelmRequest) bool {
 	current := GenUniqueHash(hr)
 	if current == hr.Status.LastSpecHash {
 		return true
@@ -74,7 +84,7 @@ func IsHelmRequestSynced(hr *v1alpha1.HelmRequest) bool {
 }
 
 // GetReleaseName get release name
-func GetReleaseName(hr *v1alpha1.HelmRequest) string {
+func GetReleaseName(hr *appv1.HelmRequest) string {
 	return hr.GetReleaseName()
 }
 
@@ -83,7 +93,7 @@ func helmRepositoryFile() string {
 }
 
 // isSwitchEnabled return annoKey Annotation is true or not
-func isSwitchEnabled(hr *v1alpha1.HelmRequest, annoKey string) bool {
+func isSwitchEnabled(hr *appv1.HelmRequest, annoKey string) bool {
 	if hr == nil || len(hr.Annotations) == 0 {
 		return false
 	}
@@ -93,4 +103,18 @@ func isSwitchEnabled(hr *v1alpha1.HelmRequest, annoKey string) bool {
 	}
 
 	return false
+}
+
+func getChartSourceType(hr *appv1.HelmRequest) ChartSourceType {
+	if hr != nil && hr.Spec.Source != nil {
+		if hr.Spec.Source.HTTP != nil {
+			return ChartSourceHTTP
+		}
+
+		if hr.Spec.Source.OCI != nil {
+			return ChartSourceOCI
+		}
+	}
+
+	return ChartSourceChart
 }

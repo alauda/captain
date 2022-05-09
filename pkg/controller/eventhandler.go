@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"encoding/json"
 	"reflect"
 
-	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
+	appv1alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )
@@ -13,8 +16,24 @@ import (
 // obj at the same time
 func (c *Controller) newHelmRequestHandler() cache.ResourceEventHandler {
 	updateFunc := func(old, new interface{}) {
-		oldHR := old.(*alpha1.HelmRequest)
-		newHR := new.(*alpha1.HelmRequest)
+		oldHR, ok := old.(*appv1.HelmRequest)
+		if !ok {
+			var err error
+			oldHR, err = convertToV1(old)
+			if err != nil {
+				klog.Errorf("can not convert object to v1 helmrequest : %+v", old)
+				return
+			}
+		}
+		newHR, ok := new.(*appv1.HelmRequest)
+		if !ok {
+			var err error
+			newHR, err = convertToV1(new)
+			if err != nil {
+				klog.Errorf("can not convert object to v1 helmrequest : %+v", new)
+				return
+			}
+		}
 		// this is a bit of tricky
 		// 1. old and new -> 1 cluster => check version and spec
 		// 2. old and new -> N cluster => no check
@@ -39,7 +58,7 @@ func (c *Controller) newHelmRequestHandler() cache.ResourceEventHandler {
 				return
 			}
 			klog.V(4).Infof("old hr annotations: %+v, new hr annotations: %+v", oldHR.Annotations, newHR.Annotations)
-			klog.V(4).Infof("old hr: %+v, new hr: %+v", oldHR.Spec, newHR.Spec)
+			klog.V(4).Infof("old hr.spec: %+v, new hr.spec: %+v", oldHR.Spec, newHR.Spec)
 			c.enqueueHelmRequest(new)
 		}
 	}
@@ -58,8 +77,24 @@ func (c *Controller) newHelmRequestHandler() cache.ResourceEventHandler {
 // obj at the same time
 func (c *Controller) newClusterHelmRequestHandler(name string) cache.ResourceEventHandler {
 	updateFunc := func(old, new interface{}) {
-		oldHR := old.(*alpha1.HelmRequest)
-		newHR := new.(*alpha1.HelmRequest)
+		oldHR, ok := old.(*appv1.HelmRequest)
+		if !ok {
+			var err error
+			oldHR, err = convertToV1(old)
+			if err != nil {
+				klog.Errorf("can not convert object to v1 helmrequest : %+v", old)
+				return
+			}
+		}
+		newHR, ok := new.(*appv1.HelmRequest)
+		if !ok {
+			var err error
+			newHR, err = convertToV1(new)
+			if err != nil {
+				klog.Errorf("can not convert object to v1 helmrequest : %+v", new)
+				return
+			}
+		}
 		// this is a bit of tricky
 		// 1. old and new -> 1 cluster => check version and spec
 		// 2. old and new -> N cluster => no check
@@ -75,7 +110,7 @@ func (c *Controller) newClusterHelmRequestHandler(name string) cache.ResourceEve
 				c.enqueueClusterHelmRequest(new, name)
 			}
 
-			if newHR.Status.Phase == alpha1.HelmRequestPending {
+			if newHR.Status.Phase == appv1.HelmRequestPending {
 				klog.V(4).Infof("")
 			}
 
@@ -107,4 +142,26 @@ func (c *Controller) newClusterHelmRequestHandler(name string) cache.ResourceEve
 	}
 
 	return funcs
+}
+
+func convertToV1(obj interface{}) (*appv1.HelmRequest, error) {
+	alphaHR := obj.(*appv1alpha1.HelmRequest)
+	gvk := schema.GroupVersionKind{
+		Group:   appv1.SchemeGroupVersion.Group,
+		Version: appv1.SchemeGroupVersion.Version,
+		Kind:    alphaHR.GetObjectKind().GroupVersionKind().Kind,
+	}
+	alphaHR.SetGroupVersionKind(gvk)
+
+	b, err := json.Marshal(alphaHR)
+	if err != nil {
+		return nil, err
+	}
+
+	convertHR := &appv1.HelmRequest{}
+	if err := json.Unmarshal(b, convertHR); err != nil {
+		return nil, err
+	}
+
+	return convertHR, nil
 }

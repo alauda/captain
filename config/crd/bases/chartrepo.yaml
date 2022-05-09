@@ -1,36 +1,169 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: chartrepos.app.alauda.io
   annotations:
     "helm.sh/hook": crd-install
 spec:
+  conversion:
+    strategy: None
   group: app.alauda.io
-  version: v1alpha1
   names:
     kind: ChartRepo
     listKind: ChartRepoList
     plural: chartrepos
-    singular: chartrepo
     shortNames:
-      - ctr
-  additionalPrinterColumns:
-    - name: URL
-      type: string
-      description: The url of this chart repo
-      JSONPath: .spec.url
-    - name: Phase
-      type: string
-      description: The phase of this ChartRepo
-      JSONPath: .status.phase
-    - name: Age
-      type: date
-      JSONPath: .metadata.creationTimestamp
+    - ctr
+    singular: chartrepo
   scope: Namespaced
-  validation:
-    # openAPIV3Schema is the schema for validating custom objects.
-    openAPIV3Schema:
-      properties:
-        spec:
-          required:
+  versions:
+  - additionalPrinterColumns:
+    - description: The url of this chart repo
+      jsonPath: .spec.url
+      name: URL
+      type: string
+    - description: The phase of this ChartRepo
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              secret:
+                description: Secret contains information about how to auth to this
+                  repo
+                properties:
+                  name:
+                    description: Name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: Namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                nullable: true
+                type: object
+              url:
+                description: URL is the repo's url
+                type: string
+            required:
             - url
+            type: object
+          status:
+            properties:
+              phase:
+                description: Phase ... After create, this phase will be updated to
+                  indicate it's sync status If receive update event, and some field
+                  in spec changed, sync agagin.
+                type: string
+              reason:
+                description: Reason is the failed reason
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+  - additionalPrinterColumns:
+    - description: The url of this chart repo
+      jsonPath: .spec.url
+      name: URL
+      type: string
+    - description: The phase of this ChartRepo
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              secret:
+                description: Secret contains information about how to auth to this
+                  repo
+                properties:
+                  name:
+                    description: Name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: Namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                nullable: true
+                type: object
+              source:
+                description: new in v1beta1.if type is Chart, this is optional and
+                  it will provide some compatible with v1alpha1
+                properties:
+                  path:
+                    description: may be root, may be a subdir
+                    type: string
+                  url:
+                    description: vcs url
+                    type: string
+                required:
+                - url
+                nullable: true
+                type: object
+              type:
+                description: new in v1beta1
+                type: string
+              url:
+                description: URL is the repo's url
+                type: string
+            required:
+            - type
+            - url
+            type: object
+          status:
+            properties:
+              phase:
+                description: Phase ... After create, this phase will be updated to
+                  indicate it's sync status If receive update event, and some field
+                  in spec changed, sync agagin.
+                type: string
+              reason:
+                description: Reason is the failed reason
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

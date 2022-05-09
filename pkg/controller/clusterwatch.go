@@ -8,17 +8,16 @@ import (
 
 	"github.com/alauda/captain/pkg/cluster"
 	"github.com/alauda/captain/pkg/util"
-	alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	hrScheme "github.com/alauda/helm-crds/pkg/client/clientset/versioned/scheme"
 	informers "github.com/alauda/helm-crds/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -229,11 +228,8 @@ func (c *Controller) processNextClusterWorkItem(name string) bool {
 		// Start the syncHandler, passing it the namespace/name string of the
 		// HelmRequest resource to be synced.
 		if err := c.syncHandler(key); err != nil {
-			// not rbac checked error
-			if !apierrors.IsForbidden(err) {
-				// Put the item back on the workQueue to handle any transient errors.
-				queue.AddRateLimited(key)
-			}
+			// Put the item back on the workQueue to handle any transient errors.
+			queue.AddRateLimited(key)
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
@@ -292,7 +288,15 @@ func (c *Controller) deleteClusterHelmRequestHandler(obj interface{}, name strin
 		return
 	}
 
-	hr := obj.(*alpha1.HelmRequest)
+	hr, ok := obj.(*appv1.HelmRequest)
+	if !ok {
+		hr, err = convertToV1(obj)
+		if err != nil {
+			utilruntime.HandleError(err)
+			klog.Errorf("can not convert object to v1 helmrequest : %+v", obj)
+			return
+		}
+	}
 	klog.Infof("receive delete event, cluster %s, : %+v", name, hr)
 
 	hr = hr.DeepCopy()

@@ -105,3 +105,40 @@ spec:
 ```
 
 集中配置可以成为管理多个 HelmRequest 资源的好帮手。
+
+## Helmrequest OCI support
+现在支持v1版本，并添加了新的字段，如下面的示例所示
+
+```yaml
+# OCI type
+apiVersion: app.alauda.io/v1
+kind: HelmRequest
+metadata:
+  name: test-oci
+  namespace: default
+spec:
+  source:
+    oci:
+      repo: 192.168.26.40:60080/acp/chart-tomcat         # oci repo address
+      secretRef: ociSecret      # optional, if basic authentication is required, specify a secretname here.
+  values:
+    namespace: default
+  version: 9.2.9    # required, oci version
+---
+# HTTP type
+apiVersion: app.alauda.io/v1
+kind: HelmRequest
+metadata:
+  name: test-http
+  namespace: default
+spec:
+  source:
+    http:
+      url: https://alauda.github.io/captain-test-charts/wordpress-lookup-11.0.13.tgz
+  values: {}
+```
+
+## spec.source
+
+spec.source 是可选项, 指示当前chart的源，它将是一个OCI或HTTP URL地址。
+如果需要基本身份验证, 在下面的字段中指定secret name即可： `spec.source.oci` or `spec.source.http`.

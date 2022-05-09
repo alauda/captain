@@ -13,6 +13,22 @@
     在这种情况下，删除其中的任意一个`HelmRequest`都会删除相应的资源。
     这个注解可以帮助你解决这个问题。（当然有一些方法可以安全地删除`HelmRequest`而不删除包含的资源）
 
+## `captain-keep-resources`
+适用于: `HelmRequest`
+
+可取值: True/False
+
+描述:
+	如果你想在通过helm卸载chart时保留已部署的k8s资源，你可以使用这个注释告诉captain，这个HelmRequest对应的chart在进行卸载时将会保留资源。
+
+## `captain-force-adopt-resources`
+适用于: `HelmRequest`
+
+可取值: True/False
+
+描述:
+	如果你想在通过helm安装或升级chart版本时领养k8s资源，你可以使用这个注释告诉船长，这个HelmRequest将在安装或升级对应的chart时强制领养资源。因为在最新的helm版本中，不允许更新不属于当前release的同名资源。
+
 ## `kubectl-captain.resync`
 适用于: `HelmRequest`
 

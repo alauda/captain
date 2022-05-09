@@ -2,9 +2,9 @@ package chartrepo
 
 import (
 	"context"
-	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	"time"
 
+	"github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	clientset "github.com/alauda/helm-crds/pkg/client/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

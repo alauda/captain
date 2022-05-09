@@ -30,7 +30,7 @@ RUN go build -ldflags '-w -s' -a -installsuffix cgo -o manager main.go
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 # FROM gcr.azk8s.cn/distroless/static:latest
-FROM alpine:3.14
+FROM alpine:3.15
 
 RUN  sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && apk update && apk add subversion
 RUN  echo 'hosts: files dns' > /etc/nsswitch.conf

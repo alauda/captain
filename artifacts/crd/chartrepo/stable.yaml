@@ -1,10 +1,6 @@
 apiVersion: app.alauda.io/v1alpha1
 kind: ChartRepo
 metadata:
-  name: alauda
-spec:
-  url: https://alauda.github.io/chartskind: ChartRepo
-metadata:
   name: stable
 spec:
   url: https://kubernetes-charts.storage.googleapis.com
