@@ -15,10 +15,13 @@ import (
 	"github.com/alauda/captain/pkg/chartrepo"
 	"github.com/alauda/captain/pkg/registry"
 	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/go-logr/logr"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/repo"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,21 +81,21 @@ func (d *Downloader) getRepoInfo(name string, ns string) (*repo.Entry, error) {
 	return entry, err
 }
 
-// downloadChart download a chart from helm repo to local disk and return the path
+// downloadChart download a chart from helm repo to local disk and return the chart
 // name: <repo>/<chart>
-func (d *Downloader) downloadChart(name string, version string) (string, error) {
+func (d *Downloader) downloadChart(name string, version string) (*chart.Chart, error) {
 	log := d.log
 
 	repoName, chart := getRepoAndChart(name)
 	if repoName == "" && chart == "" {
-		return "", errors.New("cannot parse chart name")
+		return nil, errors.New("cannot parse chart name")
 	}
 	log.Info("get chart", "name", name, "version", version)
 
 	dir := ChartsDir
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err = os.MkdirAll(dir, 0755); err != nil {
-			return "", err
+			return nil, err
 		}
 		log.Info("helm charts dir not exist, create it: ", "dir", dir)
 	}
@@ -100,7 +103,7 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 	entry, err := d.getRepoInfo(repoName, d.ns)
 	if err != nil {
 		log.Error(err, "get chartrepo error")
-		return "", err
+		return nil, err
 	}
 
 	chartResourceName := fmt.Sprintf("%s.%s", strings.ToLower(chart), repoName)
@@ -108,34 +111,26 @@ func (d *Downloader) downloadChart(name string, version string) (string, error) 
 	cv, err := chartrepo.GetChart(chartResourceName, version, d.ns, d.incfg)
 	if err != nil {
 		log.Error(err, "get chart error")
-		return "", err
+		return nil, err
 	}
 
 	path := cv.URLs[0]
 
-	fileName := strings.Split(path, "/")[1]
+	fileName := splitChartNameFromURL(path)
 	filePath := fmt.Sprintf("%s/%s-%s-%s", dir, repoName, cv.Digest, fileName)
 
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		log.Info("chart already downloaded, use it", "path", filePath)
-		return filePath, nil
+		return loader.Load(filePath)
 	}
 
-	if err := downloadFileFromEntry(entry, path, filePath); err != nil {
-		log.Error(err, "download chart to disk error")
-		return "", err
-	}
-
-	log.Info("download chart to disk", "path", filePath)
-
-	return filePath, nil
-
+	return loadFileFromEntry(entry, path, filePath)
 }
 
-// downloadFileFromEntry will download a url and store it in local filepath.
+// loadFileFromEntry will download a url and store it in local filepath.
 // It writes to the destination file as it downloads it, without
 // loading the entire file into memory.
-func downloadFileFromEntry(entry *repo.Entry, chartPath, filepath string) error {
+func loadFileFromEntry(entry *repo.Entry, chartPath, filePath string) (*chart.Chart, error) {
 	ep := entry.URL + "/" + chartPath
 	if strings.HasSuffix(entry.URL, "/") {
 		ep = entry.URL + chartPath
@@ -145,10 +140,10 @@ func downloadFileFromEntry(entry *repo.Entry, chartPath, filepath string) error 
 		ep = chartPath
 	}
 
-	return downloadFile(ep, entry.Username, entry.Password, filepath)
+	return loadChart(ep, entry.Username, entry.Password, filePath)
 }
 
-func downloadFile(url, username, password, filepath string) error {
+func loadChart(url, username, password, filePath string) (*chart.Chart, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if username != "" && password != "" {
 		req.SetBasicAuth(username, password)
@@ -157,36 +152,35 @@ func downloadFile(url, username, password, filepath string) error {
 	// Get the data
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return errors.Errorf("failed to fetch %s : %s", url, resp.Status)
+		return nil, errors.Errorf("failed to fetch %s : %s", url, resp.Status)
 	}
 
 	buf := bytes.NewBuffer(nil)
 	_, err = io.Copy(buf, resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := ioutil.WriteFile(filepath, buf.Bytes(), 0644); err != nil {
-		return err
+	if err := ioutil.WriteFile(filePath, buf.Bytes(), 0644); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return loader.Load(filePath)
 }
 
-func (d *Downloader) downloadChartFromHTTP(hr *appv1.HelmRequest) (string, error) {
-	var filePath string
+func (d *Downloader) downloadChartFromHTTP(hr *appv1.HelmRequest) (*chart.Chart, error) {
 	var err error
 	if hr.Spec.Source != nil && hr.Spec.Source.HTTP != nil {
 		if hr.Spec.Source.HTTP.URL != "" {
 			dir := ChartsDir
 			if _, err := os.Stat(dir); os.IsNotExist(err) {
 				if err = os.MkdirAll(dir, 0755); err != nil {
-					return "", err
+					return nil, err
 				}
 				log.Info("helm charts dir not exist, create it: ", "dir", dir)
 			}
@@ -194,7 +188,7 @@ func (d *Downloader) downloadChartFromHTTP(hr *appv1.HelmRequest) (string, error
 			url := hr.Spec.Source.HTTP.URL
 			chname := splitChartNameFromURL(url)
 
-			filePath = fmt.Sprintf("%s/%s-%s", dir, hr.GetName(), chname)
+			filePath := fmt.Sprintf("%s/%s-%s", dir, hr.GetName(), chname)
 			if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 				log.Info("chart already downloaded, remove it", "path", filePath)
 				os.Remove(filePath)
@@ -204,56 +198,39 @@ func (d *Downloader) downloadChartFromHTTP(hr *appv1.HelmRequest) (string, error
 			if hr.Spec.Source.HTTP.SecretRef != "" {
 				username, password, err = d.fetchAuthFromSecret(hr.Spec.Source.HTTP.SecretRef, hr.GetNamespace())
 				if err != nil {
-					return "", err
+					return nil, err
 				}
 			}
 
 			if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
-				if err := downloadFile(url, username, password, filePath); err != nil {
-					return "", err
-				}
-				log.Info("successfully download chart from url", "url", url)
-			} else {
-				err = errors.New("helmrequest spec source http url does not start with HTTP or HTTPS")
+				return loadChart(url, username, password, filePath)
 			}
+			err = errors.New("helmrequest spec source http url does not start with HTTP or HTTPS")
 		} else {
 			err = errors.New("helmrequest spec source http url not found")
 		}
 	}
 
-	return filePath, err
+	if err == nil {
+		err = errors.New("helmrequest spec source invalid, require HTTP type")
+	}
+
+	return nil, err
 }
 
 func (d *Downloader) pullOCIChart(hr *appv1.HelmRequest) (*chart.Chart, error) {
-	client, err := registry.NewClient(
-		registry.ClientOptDebug(true),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	if hr.Spec.Source != nil && hr.Spec.Source.OCI != nil {
 		username, password := "", ""
+		var err error
 		if hr.Spec.Source.OCI.SecretRef != "" {
 			username, password, err = d.fetchAuthFromSecret(hr.Spec.Source.OCI.SecretRef, hr.GetNamespace())
 			if err != nil {
 				return nil, err
 			}
 		}
-		ref, err := registry.ParseReference(hr.Spec.Source.OCI.Repo)
-		if err != nil {
-			return nil, err
-		}
-		if err := client.PullChart(ref, true, true, username, password); err != nil {
-			return nil, err
-		}
 
-		cht, err := client.LoadChart(ref)
-		if err != nil {
-			return nil, err
-		}
-
-		return cht, nil
+		url := hr.Spec.Source.OCI.Repo + ":" + hr.Spec.Version
+		return d.pullAndLoadChart(url, username, password)
 	}
 
 	return nil, errors.New("invalid chart Source, need OCI type")
@@ -310,4 +287,66 @@ func splitChartNameFromURL(url string) string {
 		return url
 	}
 	return url[idx+1:]
+}
+
+func (d *Downloader) pullAndLoadChart(url, username, password string) (*chart.Chart, error) {
+	client, err := registry.NewClient(
+		registry.ClientOptDebug(true),
+		registry.ClientOptPlainHTTP(false),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ref, err := registry.ParseReference(url)
+	if err != nil {
+		return nil, err
+	}
+
+	domain := ""
+	if username != "" && password != "" {
+		tmpURL := url
+		if !strings.HasPrefix(tmpURL, "//") {
+			tmpURL = fmt.Sprintf("//%s", url)
+		}
+		imageRef, err := docker.ParseReference(tmpURL)
+		if err != nil {
+			d.log.Error(err, "could not parse image")
+			return nil, err
+		}
+		domain = reference.Domain(imageRef.DockerReference())
+		if err := client.Login(domain, username, password, true); err != nil {
+			d.log.Error(err, "registry login error")
+		}
+	}
+
+	buffer, err := client.PullChart(ref, true)
+	if err != nil {
+		if strings.Contains(err.Error(), "server gave HTTP response to HTTPS client") {
+			d.log.Info("Will try to pull chart again with plainHTTP", "response", err.Error())
+			// set plainHTTP to true, and try to pull again
+			client2, err := registry.NewClient(
+				registry.ClientOptDebug(true),
+				registry.ClientOptPlainHTTP(true),
+			)
+			if err != nil {
+				return nil, err
+			}
+			if domain != "" && username != "" && password != "" {
+				if err := client2.Login(domain, username, password, true); err != nil {
+					d.log.Error(err, "registry login error")
+				}
+			}
+
+			buffer, err = client2.PullChart(ref, true)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	d.log.Info("Pull chart successfully", "url", url)
+	return loader.LoadArchive(buffer)
 }

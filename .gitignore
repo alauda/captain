@@ -6,3 +6,5 @@ artifacts/coverage.out
 cover.out
 bin/manager
 bin/
+Dockerfile.local
+local-build.sh

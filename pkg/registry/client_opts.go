@@ -33,6 +33,13 @@ func ClientOptDebug(debug bool) ClientOption {
 	}
 }
 
+// ClientOptPlainHTTP returns a function that sets the plainHTTP setting on client options set
+func ClientOptPlainHTTP(plainHTTP bool) ClientOption {
+	return func(client *Client) {
+		client.plainHTTP = plainHTTP
+	}
+}
+
 // ClientOptWriter returns a function that sets the writer setting on client options set
 func ClientOptWriter(out io.Writer) ClientOption {
 	return func(client *Client) {

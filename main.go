@@ -32,6 +32,7 @@ import (
 	"github.com/alauda/captain/pkg/config"
 	"github.com/alauda/captain/pkg/controller"
 	"github.com/alauda/captain/pkg/webhook"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
 	appv1alpha1 "github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
 	appv1beta1 "github.com/alauda/helm-crds/pkg/apis/app/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -43,6 +44,7 @@ import (
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
@@ -59,6 +61,7 @@ func init() {
 
 	_ = appv1beta1.AddToScheme(scheme)
 
+	_ = appv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -67,8 +70,10 @@ func main() {
 	options.BindFlags()
 
 	var metricsAddr string
+	var probeAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	klog.InitFlags(nil)
@@ -88,12 +93,13 @@ func main() {
 
 	rp := time.Second * 120
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "captain-controller-lock",
-		Port:               9443,
-		SyncPeriod:         &rp,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "captain-controller-lock",
+		Port:                   9443,
+		SyncPeriod:             &rp,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -186,6 +192,15 @@ func main() {
 	go func() {
 		http.ListenAndServe("0.0.0.0:6061", nil)
 	}()
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up health check")
+		os.Exit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {

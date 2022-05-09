@@ -1,23 +1,93 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-    name: charts.app.alauda.io
+  name: charts.app.alauda.io
 spec:
-    group: app.alauda.io
-    version: v1alpha1
-    names:
-        kind: Chart
-        listKind: ChartList
-        plural: charts
-        singular: chart
-    additionalPrinterColumns:
-        - name: Version
-          type: string
-          JSONPath: .spec.versions[0].version
-        - name: AppVersion
-          type: string
-          JSONPath: .spec.versions[0].appVersion
-        - name: Age
-          type: date
-          JSONPath: .metadata.creationTimestamp
-    scope: Namespaced
+  conversion:
+    strategy: None
+  group: app.alauda.io
+  names:
+    kind: Chart
+    listKind: ChartList
+    plural: charts
+    singular: chart
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.versions[0].version
+      name: Version
+      type: string
+    - jsonPath: .spec.versions[0].appVersion
+      name: AppVersion
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              versions:
+                items:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+  - additionalPrinterColumns:
+    - jsonPath: .spec.versions[0].version
+      name: Version
+      type: string
+    - jsonPath: .spec.versions[0].appVersion
+      name: AppVersion
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              versions:
+                items:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

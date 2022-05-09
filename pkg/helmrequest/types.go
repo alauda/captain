@@ -1,7 +1,7 @@
 package helmrequest
 
 import (
-	"github.com/alauda/helm-crds/pkg/apis/app/v1alpha1"
+	appv1 "github.com/alauda/helm-crds/pkg/apis/app/v1"
 )
 
 var (
@@ -16,7 +16,7 @@ var (
 //    a. If annotations.auto-resolve-version-once=false, auto resolve version every time from chartrepo
 //    b. If annotations.auto-resolve-version-once=true, auto resolve version in the first time, then use the version from
 //       .status.verion
-func ResolveVersion(hr *v1alpha1.HelmRequest) string {
+func ResolveVersion(hr *appv1.HelmRequest) string {
 	version := hr.Spec.Version
 	if version != "" {
 		return version

@@ -14,6 +14,7 @@ limitations under the License.
 package registry // import "helm.sh/helm/v3/internal/experimental/registry"
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -24,8 +25,8 @@ import (
 	"strings"
 
 	"github.com/containerd/containerd/remotes"
-	"github.com/containerd/containerd/remotes/docker"
 	auth "github.com/deislabs/oras/pkg/auth/docker"
+	"github.com/deislabs/oras/pkg/content"
 	"github.com/deislabs/oras/pkg/oras"
 	"github.com/gosuri/uitable"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -50,6 +51,7 @@ type (
 		authorizer      *Authorizer
 		resolver        *Resolver
 		cache           *Cache
+		plainHTTP       bool
 	}
 )
 
@@ -75,7 +77,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		}
 	}
 	if client.resolver == nil {
-		resolver, err := client.newResolver(true, true)
+		resolver, err := client.newResolver(true, client.plainHTTP)
 		if err != nil {
 			return nil, err
 		}
@@ -155,15 +157,64 @@ func (c *Client) PushChart(ref *Reference, insecure bool, plainHTTP bool) error 
 }
 
 // PullChart downloads a chart from a registry
-func (c *Client) PullChart(ref *Reference, insecure bool, plainHTTP bool, username, password string) error {
-	if username != "" && password != "" {
-		resolver, err := c.newAuthResolver(username, password, insecure, plainHTTP)
-		if err != nil {
-			return err
+func (c *Client) PullChart(ref *Reference, insecure bool) (*bytes.Buffer, error) {
+	buf := bytes.NewBuffer(nil)
+
+	if ref.Tag == "" {
+		return buf, errors.New("tag explicitly required")
+	}
+
+	fmt.Fprintf(c.out, "%s: Pulling from %s\n", ref.Tag, ref.Repo)
+
+	store := content.NewMemoryStore()
+	fullname := ref.FullName()
+	_ = fullname
+	_, layerDescriptors, err := oras.Pull(ctx(c.out, c.debug), c.resolver, ref.FullName(), store,
+		oras.WithPullEmptyNameAllowed(),
+		oras.WithAllowedMediaTypes(KnownMediaTypes()))
+	if err != nil {
+		return buf, err
+	}
+
+	numLayers := len(layerDescriptors)
+	if numLayers < 1 {
+		return buf, errors.New(
+			fmt.Sprintf("manifest does not contain at least 1 layer (total: %d)", numLayers))
+	}
+
+	var contentLayer *ocispec.Descriptor
+	for _, layer := range layerDescriptors {
+		layer := layer
+		switch layer.MediaType {
+		case HelmChartContentLayerMediaType:
+			contentLayer = &layer
+
 		}
-		c.resolver = &Resolver{
-			Resolver: resolver,
-		}
+	}
+
+	if contentLayer == nil {
+		return buf, errors.New(
+			fmt.Sprintf("manifest does not contain a layer with mediatype %s",
+				HelmChartContentLayerMediaType))
+	}
+
+	_, b, ok := store.Get(*contentLayer)
+	if !ok {
+		return buf, errors.Errorf("Unable to retrieve blob with digest %s", contentLayer.Digest)
+	}
+
+	buf = bytes.NewBuffer(b)
+	return buf, nil
+}
+
+// PullChartToCache pulls a chart from an OCI Registry to the Registry Cache.
+func (c *Client) PullChartToCache(ref *Reference, insecure bool, plainHTTP bool) error {
+	resolver, err := c.newResolver(insecure, plainHTTP)
+	if err != nil {
+		return err
+	}
+	c.resolver = &Resolver{
+		Resolver: resolver,
 	}
 
 	if ref.Tag == "" {
@@ -179,10 +230,8 @@ func (c *Client) PullChart(ref *Reference, insecure bool, plainHTTP bool, userna
 		oras.WithAllowedMediaTypes(KnownMediaTypes()),
 		oras.WithContentProvideIngester(c.cache.ProvideIngester()))
 	if err != nil {
-		if plainHTTP {
-			if strings.Contains(err.Error(), `\x15\x03\x01\x00\x02\x02`) {
-				return c.PullChart(ref, insecure, !plainHTTP, username, password)
-			}
+		if strings.Contains(err.Error(), "server gave HTTP response to HTTPS client") && (!plainHTTP) {
+			return c.PullChartToCache(ref, insecure, true)
 		}
 		return err
 	}
@@ -318,36 +367,5 @@ func (c *Client) newResolver(insecure bool, plainHTTP bool) (resolver remotes.Re
 	}
 	client.Transport = transport
 	resolver, err = c.authorizer.Resolver(context.Background(), client, plainHTTP)
-	return
-}
-
-func (c *Client) newAuthResolver(username, password string, insecure bool, plainHTTP bool) (resolver remotes.Resolver, err error) {
-	opts := docker.ResolverOptions{
-		PlainHTTP: plainHTTP,
-	}
-
-	opts.Client = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: insecure,
-			},
-		},
-	}
-
-	if username != "" || password != "" {
-		opts.Credentials = func(hostName string) (string, string, error) {
-			return username, password, nil
-		}
-		return docker.NewResolver(opts), nil
-	}
-	cli, err := auth.NewClient()
-	if err != nil {
-		fmt.Fprintf(c.out, "WARNING: Error loading auth file: %s", err.Error())
-	}
-	resolver, err = cli.Resolver(context.Background(), opts.Client, plainHTTP)
-	if err != nil {
-		fmt.Fprintf(c.out, "WARNING: Error loading resolver: %s", err.Error())
-		resolver = docker.NewResolver(opts)
-	}
 	return
 }

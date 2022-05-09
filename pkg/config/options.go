@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/alauda/captain/pkg/util"

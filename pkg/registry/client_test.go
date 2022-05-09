@@ -186,13 +186,13 @@ func (suite *RegistryClientTestSuite) Test_4_PullChart() {
 	// non-existent ref
 	ref, err := ParseReference(fmt.Sprintf("%s/testrepo/whodis:9.9.9", suite.DockerRegistryHost))
 	suite.Nil(err)
-	err = suite.RegistryClient.PullChart(ref, true, true, "", "")
+	_, err = suite.RegistryClient.PullChart(ref, true)
 	suite.NotNil(err)
 
 	// existing ref
 	// ref, err = ParseReference(fmt.Sprintf("%s/testrepo/testchart:1.2.3", suite.DockerRegistryHost))
 	// suite.Nil(err)
-	// err = suite.RegistryClient.PullChart(ref, true, true, "", "")
+	// _, err = suite.RegistryClient.PullChart(ref, true)
 	// suite.Nil(err)
 }
 
@@ -229,7 +229,7 @@ func (suite *RegistryClientTestSuite) Test_8_ManInTheMiddle() {
 	// suite.Nil(err)
 
 	// returns content that does not match the expected digest
-	// err = suite.RegistryClient.PullChart(ref, true, true, "", "")
+	// _, err = suite.RegistryClient.PullChart(ref, true)
 	// suite.NotNil(err)
 	// suite.True(errdefs.IsFailedPrecondition(err))
 }
