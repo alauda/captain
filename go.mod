@@ -11,7 +11,7 @@ require (
 	github.com/bshuster-repo/logrus-logstash-hook v1.0.0 // indirect
 	github.com/bugsnag/bugsnag-go v2.1.1+incompatible // indirect
 	github.com/bugsnag/panicwrap v1.3.2 // indirect
-	github.com/containerd/containerd v1.5.0-beta.1
+	github.com/containerd/containerd v1.5.13
 	github.com/containers/image/v5 v5.11.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deislabs/oras v0.11.1
@@ -30,7 +30,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
+	github.com/opencontainers/image-spec v1.0.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.26.0
@@ -42,7 +42,7 @@ require (
 	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	helm.sh/helm/v3 v3.6.3
 	k8s.io/api v0.21.1
