@@ -40,7 +40,7 @@ An example HelmRequest looks like this(after setting some defaults):
 
 
 ```yaml
-apiVersion: app.alauda.io/v1alpha1
+apiVersion: app.alauda.io/v1
 kind: HelmRequest
 metadata:
   finalizers:
@@ -178,7 +178,7 @@ spec:
 The definition is quite simple, For example, the most simplest ones is :
 
 ```yaml
-apiVersion: app.alauda.io/v1alpha1
+apiVersion: app.alauda.io/v1beta1
 kind: ChartRepo
 metadata:
   name: stable
@@ -219,7 +219,7 @@ Of course ,many repos need auth support. Currently, `ChartRepo` has support basi
 a secret resource in the spec:
 
 ```yaml
-apiVersion: app.alauda.io/v1alpha1
+apiVersion: app.alauda.io/v1beta1
 kind: ChartRepo
 metadata:
   name: new
@@ -257,7 +257,7 @@ From version `0.9.2`, captain add a `Chart` CRD to represents helm charts info. 
 NAME         VERSION   APPVERSION   AGE
 seq.stable   1.0.2     5            7d
 [root@ace-master-1 ~]# kubectl  get charts.app.alauda.io -n alauda-system seq.stable -o yaml
-apiVersion: app.alauda.io/v1alpha1
+apiVersion: app.alauda.io/v1beta1
 kind: Chart
 metadata:
   creationTimestamp: "2019-09-17T05:58:19Z"
